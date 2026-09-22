@@ -1,0 +1,76 @@
+\section{Arbitrary-Order Hu--Zhang Elements}
+\label{sec:huzhang_elements}
+
+\subsection{Geometric Tangential--Normal Decomposition on Simplices}
+\label{subsec:geometric_decomposition}
+
+On a $d$-dimensional simplex $T \in \mathcal{T}_h$, let $\lambda_0, \ldots, \lambda_d$ denote the standard barycentric coordinates associated with vertices $\boldsymbol{x}_0, \ldots, \boldsymbol{x}_d$. For any face $F_i$ opposite to vertex $\boldsymbol{x}_i$, the outward unit normal is $\boldsymbol{n}_i = -\nabla\lambda_i / \|\nabla\lambda_i\|$.
+
+Following Hu and Zhang~\cite{HuZhang2014}, the space of polynomial symmetric tensors $\mathbb{P}_k(T;\mathbb{S})$ can be characterized via a geometric entity decomposition into vertex, edge, face, and interior modes:
+\begin{equation}
+\mathbb{P}_k(T;\mathbb{S}) = \bigoplus_{\ell=0}^d \bigoplus_{e \in \Delta_\ell(T)} \mathcal{B}_{k,e}(T),
+\end{equation}
+where $\Delta_\ell(T)$ denotes the set of $\ell$-dimensional sub-simplices of $T$. On each sub-simplex $e$, polynomial tensor modes are split into normal and tangential components with respect to adjacent faces. Specifically, for any inter-element interface $F = T^+ \cap T^-$, normal trace continuity requires:
+\begin{equation}
+\boldsymbol{\tau}|_{T^+} \boldsymbol{n}_F = \boldsymbol{\tau}|_{T^-} \boldsymbol{n}_F \quad \text{on } F.
+\end{equation}
+
+\subsection{Arbitrary-Order Spaces and Standard Discrete Formulation}
+\label{subsec:discrete_spaces}
+
+For an arbitrary integer polynomial order $k \ge 1$, the conforming Hu--Zhang finite element space for the symmetric stress tensor is defined globally as:
+\begin{equation}
+\boldsymbol{\Sigma}_{k,h} = \left\{ \boldsymbol{\tau}_h \in H(\operatorname{div},\Omega;\mathbb{S}) : \boldsymbol{\tau}_h|_T \in \mathbb{P}_k(T;\mathbb{S}), \;\forall\,T\in\mathcal{T}_h \right\}.
+\end{equation}
+The homogeneous subspace conforming to the traction-free boundary conditions is denoted by $\boldsymbol{\Sigma}_{k,h}^0 = \boldsymbol{\Sigma}_{k,h} \cap \boldsymbol{\Sigma}_0$.
+The corresponding discrete displacement space is chosen as the piecewise polynomial space of degree $(k-1)$:
+\begin{equation}
+\boldsymbol{V}_{k-1,h} = \left\{ \boldsymbol{v}_h \in L^2(\Omega;\mathbb{R}^d) : \boldsymbol{v}_h|_T \in \mathbb{P}_{k-1}(T;\mathbb{R}^d), \;\forall\,T\in\mathcal{T}_h \right\}.
+\end{equation}
+
+For $k \ge d+1$, the pair $\boldsymbol{\Sigma}_{k,h}^0 \times \boldsymbol{V}_{k-1,h}$ satisfies the discrete inf-sup condition uniformly with respect to $h$, yielding optimal convergence:
+\begin{equation}
+\|\boldsymbol{\sigma} - \boldsymbol{\sigma}_h\|_{H(\operatorname{div})} + \|\boldsymbol{u} - \boldsymbol{u}_h\|_{0} \le C h^k \left( \|\boldsymbol{\sigma}\|_{k+1} + \|\boldsymbol{u}\|_k \right).
+\end{equation}
+
+\subsection{Jump Stabilization for Low-Order Elements ($1 \le k \le d$)}
+\label{subsec:jump_stabilization}
+
+For low-order discretizations ($k=1$ in 2D and $k=1,2$ in 3D), the standard inf-sup condition fails on general simplicial meshes. To restore stability while preserving optimal convergence, we employ the symmetric matrix jump stabilization proposed by Chen et al.~\cite{Chen2017}. 
+
+For any internal face $F \in \mathcal{F}_h^i$ shared by elements $T^+$ and $T^-$, let $\llbracket \boldsymbol{\tau}_h \rrbracket = \boldsymbol{\tau}_h|_{T^+} - \boldsymbol{\tau}_h|_{T^-}$ be the tensor jump across $F$. The stabilized bilinear form $a_s(\cdot,\cdot)$ is defined on $\boldsymbol{\Sigma}_{k,h} \times \boldsymbol{\Sigma}_{k,h}$ as:
+\begin{equation}
+\label{eq:stabilized_bilinear}
+a_s(\boldsymbol{\sigma}_h, \boldsymbol{\tau}_h) = a(\boldsymbol{\sigma}_h, \boldsymbol{\tau}_h) + \sum_{F \in \mathcal{F}_h^i} \gamma_0 h_F \int_F \llbracket \boldsymbol{\sigma}_h \rrbracket : \llbracket \boldsymbol{\tau}_h \rrbracket \,\mathrm{d}s,
+\end{equation}
+where $\gamma_0 > 0$ is a dimensionless stabilization parameter (taken as $\gamma_0 = 1.0$ in our implementations). Since the exact solution $\boldsymbol{\sigma} \in H^1(\Omega;\mathbb{S})$ satisfies $\llbracket \boldsymbol{\sigma} \rrbracket = \boldsymbol{0}$, this jump stabilization is strongly consistent.
+
+\subsection{Partial Relaxation of Vertex Continuity at Corners}
+\label{subsec:corner_relaxation}
+
+At boundary vertices where boundary conditions abruptly switch (e.g., from Dirichlet to Neumann, or between non-collinear traction faces), strong $C^0$ tensor continuity at the vertex can cause severe artificial over-constraints (locking of stress tractions)~\cite{HuMa2021}. 
+
+Following Hu and Ma~\cite{HuMa2021}, we adopt a two-element local vertex relaxation technique:
+for any corner vertex $\boldsymbol{x}_V \in \partial\Omega$ with discontinuity in normal directions or boundary condition types, the global tensor degrees of freedom associated with $\boldsymbol{x}_V$ are decoupled between adjacent boundary sub-domains. This partial relaxation eliminates non-physical stress singularities and restores the optimal convergence rates.
+
+\subsection{Discrete Saddle-Point System and Matrix Reuse}
+\label{subsec:saddle_point_system}
+
+Let $\{\boldsymbol{\phi}_i\}_{i=1}^{N_\sigma}$ and $\{\boldsymbol{\psi}_j\}_{j=1}^{N_u}$ denote the basis functions of $\boldsymbol{\Sigma}_{k,h}^0$ and $\boldsymbol{V}_{k-1,h}$, respectively. The algebraic saddle-point system takes the form:
+\begin{equation}
+\label{eq:matrix_saddle_point}
+\begin{bmatrix}
+\mathbf{A}(\boldsymbol{\rho}) & \mathbf{B}^{\mathsf T} \\
+\mathbf{B} & \mathbf{0}
+\end{bmatrix}
+\begin{bmatrix}
+\mathbf{U}_\sigma \\
+\mathbf{U}_u
+\end{bmatrix}
+=
+\begin{bmatrix}
+\mathbf{F}_\sigma(\boldsymbol{\rho}) \\
+\mathbf{F}_u
+\end{bmatrix},
+\end{equation}
+where $\mathbf{A}(\boldsymbol{\rho})_{ij} = a_s(\boldsymbol{\phi}_j, \boldsymbol{\phi}_i; \boldsymbol{\rho})$ depends on the design density vector $\boldsymbol{\rho}$, while the divergence coupling matrix $\mathbf{B}_{ji} = b(\boldsymbol{\phi}_i, \boldsymbol{\psi}_j) = \int_\Omega (\operatorname{div}\boldsymbol{\phi}_i) \cdot \boldsymbol{\psi}_j \,\mathrm{d}x$ is purely geometric and strictly design-independent. Consequently, in iterative topology optimization, $\mathbf{B}$ is assembled only once during initialization and reused across all subsequent optimization cycles.

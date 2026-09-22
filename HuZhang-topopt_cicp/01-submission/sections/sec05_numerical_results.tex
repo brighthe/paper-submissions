@@ -1,0 +1,35 @@
+\section{Numerical Results}
+\label{sec:numerical_results}
+
+In this section, we present comprehensive numerical experiments to demonstrate the accuracy, stability, and versatility of the arbitrary-order Hu--Zhang mixed finite element method for topology optimization. All simulations are implemented within the open-source library FEALPy and the topology optimization platform SOPTX.
+
+\subsection{Convergence Rate Verification via Manufactured Solutions}
+\label{subsec:manufactured_solutions}
+
+To verify the theoretical convergence rates of the arbitrary-order simplicial discretization and the jump stabilization, we consider a two-dimensional manufactured solution on the unit square domain $\Omega = (0, 1)^2$. The exact displacement field is chosen as:
+\begin{equation}
+\boldsymbol{u}(x, y) = 
+\begin{bmatrix}
+\sin(2\pi x)\sin(2\pi y) + \frac{x^3}{3} \\
+\cos(2\pi x)\cos(2\pi y) + \frac{y^3}{3}
+\end{bmatrix}.
+\end{equation}
+The exact stress tensor is obtained via the isotropic Hooke's law $\boldsymbol{\sigma} = \mathcal{A}^{-1}\boldsymbol{\varepsilon}(\boldsymbol{u})$, with body force $\boldsymbol{b} = -\operatorname{div}\boldsymbol{\sigma}$. The domain is uniformly triangulated with mesh size $h$.
+
+\subsubsection{Higher-Order Convergence ($k=3, 4$)}
+For higher-order discretizations without stabilization ($k=3$ and $k=4$), the mixed finite element pair $\boldsymbol{\Sigma}_{k,h} \times \boldsymbol{V}_{k-1,h}$ satisfies the inf-sup condition. The $L^2$ stress error $\|\boldsymbol{\sigma} - \boldsymbol{\sigma}_h\|_{0}$, $H(\operatorname{div})$ stress error $\|\boldsymbol{\sigma} - \boldsymbol{\sigma}_h\|_{H(\operatorname{div})}$, and $L^2$ displacement error $\|\boldsymbol{u} - \boldsymbol{u}_h\|_{0}$ exhibit optimal convergence orders $\mathcal{O}(h^{k+1})$, $\mathcal{O}(h^k)$, and $\mathcal{O}(h^k)$, respectively.
+
+\subsubsection{Lower-Order Stabilized Convergence ($k=1, 2$)}
+For lower-order discretizations ($k=1$ and $k=2$), jump stabilization~\eqref{eq:stabilized_bilinear} is activated with $\gamma_0 = 1.0$. The numerical results demonstrate that the jump stabilization restores full stability and achieves optimal asymptotic convergence rates without introducing adverse numerical damping.
+
+\subsection{Benchmark Topology Optimization Cases}
+\label{subsec:benchmark_topopt}
+
+\subsubsection{Compliance Minimization of Clamped Beam}
+We consider a standard 2D clamped beam of dimensions $2.0 \times 1.0$ discretized by unstructured triangular meshes. We compare the compliance minimization designs obtained using the Hu--Zhang mixed elements ($k=1, 2, 3$) against standard displacement-based Lagrange elements (P1, P2, P3). In compressible regimes ($\nu = 0.3$), both formulations yield virtually identical topological layouts and objective values, confirming the mathematical consistency of the complementary energy formulation.
+
+\subsubsection{Nearly Incompressible Structural Optimization (2D Bearing)}
+To examine performance under the nearly incompressible limit, we investigate the classic 2D bearing benchmark with Poisson's ratio approaching $\nu \to 0.4999$. Standard displacement-based low-order elements suffer severe volumetric locking, generating non-physical checkerboard artifacts and spurious slender struts. In contrast, the arbitrary-order Hu--Zhang elements completely circumvent locking, generating smooth, physically sound load-carrying architectures.
+
+\subsubsection{Local Stress-Constrained Cantilever Beam}
+We examine a 2D cantilever beam subjected to local von Mises stress constraints. Employing the denominator-free relaxed constraint formulation~\eqref{eq:relaxed_stress_constraint} and the augmented Lagrangian solver, the optimization converges smoothly without stress singularities. Compared with post-processed stresses in displacement models, the conforming normal traction of the Hu--Zhang elements yields strictly continuous boundary tractions and accurate stress evaluations, effectively eliminating stress concentration artifacts near re-entrant corners.

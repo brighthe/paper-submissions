@@ -1,0 +1,69 @@
+\documentclass[mathpazo]{cicp}
+
+\input{mysettingCICP.tex}
+
+\let\listofalgorithms\relax
+\let\listalgorithmname\relax
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{stmaryrd}
+\usepackage{scalefnt}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{float}
+\usepackage{bm}
+
+\renewcommand{\lstlistingname}{Code}
+\renewcommand{\thealgorithm}{\arabic{section}.\arabic{algorithm}}
+
+\captionsetup[figure]{font=rm}
+
+\begin{document}
+\title[Arbitrary-Order Hu--Zhang Elements for Topology Optimization]{Arbitrary-Order Hu--Zhang Mixed Finite Element Methods for Density-Based Topology Optimization}
+
+\author[He L, Chen C Y, Wei H Y]{Liang He\affil{1}, Chunyu Chen\affil{2}\comma\corrauth, Huayi Wei\affil{2}}
+\address{
+\affilnum{1}\ 
+School of Mathematical Sciences, Dalian University of Technology, Dalian 116024, China\\
+\affilnum{2}\ 
+School of Mathematics and Computational Science, Xiangtan University; 
+National Center of Applied Mathematics in Hunan, Hunan Key Laboratory for 
+Computation and Simulation in Science and Engineering, Xiangtan 411105, China
+}
+
+\emails{
+	{\tt heliang@dlut.edu.cn} (L.~He),
+	{\tt chunyuchen@xtu.edu.cn} (C.~Chen),
+	{\tt weihuayi@xtu.edu.cn} (H.~Wei)
+}
+
+\begin{abstract}
+To overcome the inter-element traction discontinuity in stresses recovered from displacement elements and the volumetric locking of low-order displacement elements in nearly incompressible regimes, this paper establishes an arbitrary-order Hu--Zhang mixed finite element framework for density-based topology optimization on simplicial meshes, using symmetric stress and displacement as independent unknowns. Combining jump stabilization for lower polynomial orders with local corner relaxation, we formulate models for compliance minimization and volume minimization subject to local stress constraints, derive consistent adjoint sensitivities incorporating the design dependence of the right-hand side introduced by traction lifting, and implement the framework within FEALPy. Two-dimensional numerical examples show that both native higher-order and low-order stabilized formulations achieve their theoretically expected convergence rates, and the unified optimization workflow is applicable across all investigated discrete polynomial degrees. In standard compliance optimization, the mixed and displacement methods yield comparable topologies and compliance values; in nearly incompressible regimes, the mixed method achieves designs with lower compliance than linear displacement elements, whereas increasing the displacement polynomial degree narrows this gap. Local stress constraints are evaluated directly from the primary stress variables without stress recovery, with the discrete stress naturally preserving inter-element normal traction continuity.
+\end{abstract}
+
+\ams{65N30, 74S05, 74P05, 74B05}
+\keywords{Hu--Zhang Mixed Finite Element, Density-Based Topology Optimization, Hellinger--Reissner Principle, Nearly Incompressible Elasticity, Local Stress Constraint}
+
+\maketitle
+
+\input{sections/sec01_introduction.tex}
+\input{sections/sec02_preliminaries.tex}
+\input{sections/sec03_huzhang_elements.tex}
+\input{sections/sec04_topopt_formulation.tex}
+\input{sections/sec05_numerical_results.tex}
+\input{sections/sec06_conclusions.tex}
+
+\appendix
+\input{sections/appendix.tex}
+
+\section*{Acknowledgments}
+The author gratefully acknowledges the support of the National Natural Science Foundation of China.
+
+\bibliographystyle{abbrv}
+\bibliography{references}
+
+\end{document}

@@ -1,0 +1,101 @@
+\section{Density-Based Topology Optimization with Independent Stress}
+\label{sec:topopt_formulation}
+
+\subsection{Design Variables, Filtering, Projection, and Material Interpolation}
+\label{subsec:material_interpolation}
+
+We parameterize the structural layout using an element-wise design variable vector $\boldsymbol{\rho} = \{\rho_e\}_{e=1}^{N_e} \in [0, 1]^{N_e}$. To prevent mesh dependency and checkerboard instabilities, a standard linear density filter with filter radius $R_{\min}$ is applied, followed by a smoothed Heaviside threshold projection:
+\begin{equation}
+\tilde{\rho}_e = \frac{\sum_{i \in \mathcal{N}_e} w_{ei} v_i \rho_i}{\sum_{i \in \mathcal{N}_e} w_{ei} v_i}, \qquad
+\bar{\rho}_e = \frac{\tanh(\beta \eta) + \tanh(\beta (\tilde{\rho}_e - \eta))}{\tanh(\beta \eta) + \tanh(\beta (1 - \eta))},
+\end{equation}
+where $\beta$ is the projection sharpness parameter, $\eta \in (0, 1)$ is the threshold, and $v_i$ is the volume of element $i$.
+
+Under the complementary energy setting, the compliance tensor $\mathcal{A}(\bar{\rho})$ is interpolated using a dual-parameter penalization:
+\begin{equation}
+\label{eq:simp_compliance}
+\mathcal{A}(\bar{\rho}_e) = \left( \bar{\rho}_e^p + (1 - \bar{\rho}_e^p)\epsilon_\sigma \right)^{-1} \mathcal{A}_0,
+\end{equation}
+where $p \ge 3$ is the penalization exponent, $\epsilon_\sigma = 10^{-6}$ is a small positive parameter preventing singularity in void regions, and $\mathcal{A}_0$ is the compliance tensor of the base solid material.
+
+\subsection{Complementary Energy Compliance Formulation}
+\label{subsec:compliance_formulation}
+
+Using the reconstructed total stress $\boldsymbol{\sigma} = \boldsymbol{\sigma}_0 + \boldsymbol{\sigma}_g$, the structural compliance is naturally quantified via the complementary strain energy:
+\begin{equation}
+\label{eq:compliance_obj}
+C(\bar{\boldsymbol{\rho}}) = \frac{1}{2} \int_\Omega \mathcal{A}(\bar{\boldsymbol{\rho}}) \boldsymbol{\sigma} : \boldsymbol{\sigma} \,\mathrm{d}x = \frac{1}{2} a(\boldsymbol{\sigma}, \boldsymbol{\sigma}; \bar{\boldsymbol{\rho}}).
+\end{equation}
+The compliance minimization problem with a prescribed volume fraction $V_f \in (0, 1)$ is formulated as:
+\begin{equation}
+\label{eq:topopt_compliance_opt}
+\begin{aligned}
+\min_{\boldsymbol{\rho}} \quad & C(\bar{\boldsymbol{\rho}}) = \frac{1}{2} a(\boldsymbol{\sigma}_0 + \boldsymbol{\sigma}_g, \boldsymbol{\sigma}_0 + \boldsymbol{\sigma}_g; \bar{\boldsymbol{\rho}}) \\
+\text{s.t.} \quad & \mathbf{A}(\bar{\boldsymbol{\rho}})\mathbf{U}_\sigma + \mathbf{B}^{\mathsf T}\mathbf{U}_u = \mathbf{F}_\sigma(\bar{\boldsymbol{\rho}}), \\
+& \mathbf{B}\mathbf{U}_\sigma = \mathbf{F}_u, \\
+& \frac{\sum_{e=1}^{N_e} v_e \bar{\rho}_e}{\sum_{e=1}^{N_e} v_e} - V_f \le 0, \qquad 0 \le \rho_e \le 1, \quad e=1,\ldots,N_e.
+\end{aligned}
+\end{equation}
+
+\subsection{Denominator-Free Relaxed Local Stress Constraints}
+\label{subsec:stress_constraints}
+
+For local stress-constrained problems, conventional formulations divide the microscopic stress by the penalized density ($\boldsymbol{\sigma}/\bar{\rho}^q$), creating severe numerical singularities when $\bar{\rho} \to 0$. To overcome this, we adopt a denominator-free relaxed apparent von Mises stress formulation.
+
+The element apparent von Mises stress $\sigma_{\mathrm{vM},e}$ is computed from the total stress $\boldsymbol{\sigma}$:
+\begin{equation}
+\sigma_{\mathrm{vM},e} = \left( \frac{1}{v_e} \int_{T_e} \frac{3}{2} \operatorname{dev}(\boldsymbol{\sigma}) : \operatorname{dev}(\boldsymbol{\sigma}) \,\mathrm{d}x \right)^{1/2},
+\end{equation}
+where $\operatorname{dev}(\boldsymbol{\sigma}) = \boldsymbol{\sigma} - \frac{1}{d}\operatorname{tr}(\boldsymbol{\sigma})\mathbb{I}$. The local stress constraint is defined without division:
+\begin{equation}
+\label{eq:relaxed_stress_constraint}
+g_e(\boldsymbol{\sigma}, \bar{\boldsymbol{\rho}}) = \sigma_{\mathrm{vM},e}(\boldsymbol{\sigma}) - \bar{\rho}_e^q \sigma_{\max} \le 0, \qquad e=1,\ldots,N_e,
+\end{equation}
+where $\sigma_{\max}$ is the allowable material yield limit, and $q \in [0.5, 1]$ relaxes the allowable threshold in low-density void regions, completely eliminating the ``stress singularity'' phenomenon.
+
+\subsection{Augmented Lagrangian Formulation}
+\label{subsec:augmented_lagrangian}
+
+To solve the large number of local stress constraints efficiently, we construct an Augmented Lagrangian (AL) functional:
+\begin{equation}
+\label{eq:al_functional}
+\mathcal{L}(\boldsymbol{\rho}, \boldsymbol{\lambda}, \mu) = f_0(\bar{\boldsymbol{\rho}}) + \sum_{e=1}^{N_e} \left[ \lambda_e \max\left( g_e(\boldsymbol{\sigma},\bar{\boldsymbol{\rho}}), -\frac{\lambda_e}{2\mu} \right) + \mu \max\left( g_e(\boldsymbol{\sigma},\bar{\boldsymbol{\rho}}), -\frac{\lambda_e}{2\mu} \right)^2 \right],
+\end{equation}
+where $f_0(\bar{\boldsymbol{\rho}})$ is the objective function (e.g., structural volume fraction), $\lambda_e$ is the Lagrange multiplier associated with element $e$, and $\mu > 0$ is the quadratic penalty parameter. Multipliers are updated in outer iterations via:
+\begin{equation}
+\lambda_e^{(k+1)} = \max\left( 0, \lambda_e^{(k)} + 2\mu^{(k)} g_e(\boldsymbol{\sigma}^{(k)},\bar{\boldsymbol{\rho}}^{(k)}) \right).
+\end{equation}
+
+\subsection{Consistent Adjoint Sensitivity Analysis}
+\label{subsec:adjoint_sensitivity}
+
+A crucial novelty of the present formulation is accounting for the design dependence embedded in the lifted right-hand side $\mathbf{F}_\sigma(\bar{\boldsymbol{\rho}}) = -\mathbf{A}(\bar{\boldsymbol{\rho}})\mathbf{U}_{\sigma_g}$. 
+
+For an arbitrary response functional $\Phi(\boldsymbol{\sigma}_0, \bar{\boldsymbol{\rho}})$, its total sensitivity with respect to projected density $\bar{\rho}_e$ is obtained by defining the Lagrangian:
+\begin{equation}
+\mathcal{L}_{\mathrm{state}} = \Phi(\boldsymbol{\sigma}_0, \bar{\boldsymbol{\rho}}) - \boldsymbol{\lambda}_\sigma^{\mathsf T} \left( \mathbf{A}(\bar{\boldsymbol{\rho}})\mathbf{U}_\sigma + \mathbf{B}^{\mathsf T}\mathbf{U}_u - \mathbf{F}_\sigma(\bar{\boldsymbol{\rho}}) \right) - \boldsymbol{\lambda}_u^{\mathsf T} \left( \mathbf{B}\mathbf{U}_\sigma - \mathbf{F}_u \right).
+\end{equation}
+The discrete adjoint system reads:
+\begin{equation}
+\label{eq:adjoint_system}
+\begin{bmatrix}
+\mathbf{A}(\bar{\boldsymbol{\rho}}) & \mathbf{B}^{\mathsf T} \\
+\mathbf{B} & \mathbf{0}
+\end{bmatrix}
+\begin{bmatrix}
+\boldsymbol{\lambda}_\sigma \\
+\boldsymbol{\lambda}_u
+\end{bmatrix}
+=
+\begin{bmatrix}
+\frac{\partial \Phi}{\partial \mathbf{U}_\sigma} \\
+\mathbf{0}
+\end{bmatrix}.
+\end{equation}
+
+\textbf{Special Case 1: Compliance without jump stabilization.} For higher-order elements ($k \ge d+1$) without jump stabilization, the adjoint solution simplifies analytically to $\boldsymbol{\lambda}_\sigma = \mathbf{U}_\sigma + \mathbf{U}_{\sigma_g}$, which recovers the explicit sensitivity:
+\begin{equation}
+\frac{\partial C}{\partial \bar{\rho}_e} = -\frac{1}{2} \int_{T_e} \frac{\partial \mathcal{A}}{\partial \bar{\rho}_e} \boldsymbol{\sigma} : \boldsymbol{\sigma} \,\mathrm{d}x.
+\end{equation}
+
+\textbf{Special Case 2: Low-order stabilized formulation.} For $1 \le k \le d$, the jump stabilization introduces inter-element couplings, requiring the full numerical solution of the discrete adjoint system~\eqref{eq:adjoint_system}. The sensitivities are then evaluated by chain rule with the density filter and Heaviside projection.

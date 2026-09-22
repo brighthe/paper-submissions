@@ -1,0 +1,20 @@
+\section{Explicit Basis and Corner Relaxation DOF Inventory}
+\label{app:explicit_basis}
+
+\subsection{Local Tensor Basis and Vertex Degrees of Freedom for $k=1$}
+\label{app:basis_k1}
+
+On a triangular element $T \in \mathcal{T}_h$, let $\{\lambda_0, \lambda_1, \lambda_2\}$ denote the barycentric coordinates. For polynomial degree $k=1$, the local polynomial space $\mathbb{P}_1(T;\mathbb{S})$ has dimension $\dim \mathbb{P}_1(T;\mathbb{S}) = 3 \times \frac{2 \times 3}{2} = 9$. 
+
+The local basis functions corresponding to each vertex $\boldsymbol{x}_i$ ($i=0,1,2$) are formed by tensor products of barycentric basis functions with symmetric rank-one matrices:
+\begin{equation}
+\boldsymbol{\phi}_{i, \alpha\beta} = \lambda_i (\boldsymbol{t}_\alpha \otimes \boldsymbol{t}_\beta + \boldsymbol{t}_\beta \otimes \boldsymbol{t}_\alpha),
+\end{equation}
+where $\boldsymbol{t}_\alpha, \boldsymbol{t}_\beta$ are unit edge tangent vectors meeting at vertex $\boldsymbol{x}_i$. Across an inter-element edge $e$, continuity of normal tractions $(\boldsymbol{\tau}\boldsymbol{n}_e)|_e$ is enforced through identifying corresponding normal-normal and normal-tangential trace components.
+
+\subsection{Corner Relaxation Degree of Freedom Mapping}
+\label{app:corner_relaxation_map}
+
+At an exterior boundary corner vertex $\boldsymbol{x}_V$, the normal vectors of the two incident boundary edges $e_1, e_2$ are linearly independent. If full continuity is enforced at $\boldsymbol{x}_V$, the vertex stress tensor must satisfy both traction conditions simultaneously, leading to over-constraint when the prescribed boundary data or directions are non-collinear.
+
+Under the two-element local corner relaxation strategy~\cite{HuMa2021}, the degrees of freedom associated with $\boldsymbol{x}_V$ are duplicated between the two adjacent boundary elements, decoupling the tangential-normal traces on $e_1$ and $e_2$ while preserving interior normal continuity.

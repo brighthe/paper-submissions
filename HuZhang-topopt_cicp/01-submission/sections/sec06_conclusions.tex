@@ -1,0 +1,22 @@
+\section{Concluding Remarks}
+\label{sec:conclusions}
+
+\subsection{Key Conclusions}
+\label{subsec:key_conclusions}
+
+In this paper, we have systematically established an arbitrary-order Hu--Zhang mixed finite element framework for density-based continuum topology optimization on simplicial meshes. By adopting the Hellinger--Reissner variational principle with independent symmetric Cauchy stress and displacement fields, the proposed methodology overcomes the primary bottlenecks of classical displacement-based models. The main conclusions are:
+\begin{enumerate}
+    \item \textbf{Exact Normal Traction Continuity and Stress Fidelity}: The trial stress field naturally resides in $H(\operatorname{div},\Omega;\mathbb{S})$, guaranteeing inter-element normal traction continuity. This fundamentally avoids the stress degradation and inter-element jumps inherent in displacement post-processing, providing an accurate foundation for local stress constraints.
+    \item \textbf{Locking-Free Nearly Incompressible Design}: Because the compliance bilinear form remains uniformly bounded as $\nu \to 0.5$, the mixed formulation completely eliminates volumetric locking on general simplicial meshes, without requiring specialized selective integration or artificial pressure projections.
+    \item \textbf{Consistent Lifting and Adjoint Formulations}: By introducing design-independent traction lifting, non-homogeneous Neumann boundary conditions are seamlessly resolved, with the design-dependence of the resulting right-hand side rigorously accounted for in the adjoint sensitivity analysis.
+\end{enumerate}
+
+\subsection{Future Work and Outlook}
+\label{subsec:future_work}
+
+Future research directions include:
+\begin{enumerate}
+    \item Extending the arbitrary-order mixed topology optimization framework to full three-dimensional tetrahedral meshes;
+    \item Developing adaptive mesh refinement (AMR) and $hp$-adaptive strategies driven by Hu--Zhang mixed residual-based error estimators;
+    \item Integrating geometric nonlinearity and elastoplastic constitutive laws into the mixed topology optimization formulation.
+\end{enumerate}
