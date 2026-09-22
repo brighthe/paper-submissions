@@ -1,0 +1,22 @@
+# LaTeX 编译辅助文件与中间产物
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.fls
+*.fdb_latexmk
+*.nav
+*.snm
+*.vrb
+
+# 本地编辑器及工作区配置
+.vscode/
+.obsidian/
+.idea/
+
+# 操作系统缓存
+.DS_Store
+Thumbs.db
