@@ -8,7 +8,89 @@
 
 ---
 
-## 📢 1. Decision Letter (Official Acceptance)
+## 📩 1. Minor Revision Decision and Reviewer Comments
+
+- **From:** ttang@global-sci.com
+- **To:** weihuayi@xtu.edu.cn
+- **Subject:** Communications in Computational Physics - Decision on Manuscript ID CICP-OA-2025-0168
+- **Date:** 29-Dec-2025
+
+以下是期刊发来的 minor revision 决定函及 Reviewer 1 的完整审稿意见。原邮件中的私人修回链接已从公开归档中移除。
+
+```text
+Dear Prof. Wei:
+
+Manuscript ID CICP-OA-2025-0168 entitled "SOPTX: A Modular and Extensible Framework for Topology Optimization with Multi-Backend Support" which you submitted to the Communications in Computational Physics, has been reviewed. The comments of the reviewer(s) are included at the bottom of this letter.
+
+The reviewer(s) have recommended publication, but also suggest some minor revisions to your manuscript. Therefore, I invite you to respond to the reviewer(s)' comments and revise your manuscript.
+
+To start your revision now, click the link below:
+
+*** PLEASE NOTE: This is a two-step process. After clicking on the link, you will be directed to a webpage to confirm. ***
+
+[private revision link omitted from public archive]
+
+Alternatively, you may log into your author centre at https://mc.manuscriptcentral.com/cicp, where you will find your manuscript under "Manuscripts Awaiting Revision". Upon submission of the revised version, your manuscript number will be appended to denote a revision.
+
+When submitting your revised manuscript, you will be able to respond to the comments made by the reviewer(s) in the space provided. Please use this space to document any changes you make to the original manuscript. In order to expedite the processing of the revised manuscript, please be as specific as possible in your response to the reviewer(s).
+
+Because we are trying to facilitate timely publication of manuscripts submitted to the Communications in Computational Physics, your revised manuscript should be uploaded as soon as possible. We expect to receive your revision by 28-Feb-2026. If it is not possible for you to submit your revision by this date, please contact the Editorial Office to rearrange the due date. Otherwise we may have to consider your paper as a new submission.
+
+Once again, thank you for submitting your manuscript to the Communications in Computational Physics and I look forward to receiving your revision.
+
+Sincerely,
+Prof. Tao Tang
+Associate Editor, Communications in Computational Physics
+ttang@global-sci.com
+
+Reviewer(s)' Comments to Author:
+
+Reviewer: 1
+
+Comments to the Author
+
+In the paper under review, He, Wei and Tian proposed a topology optimization framework-SOPTX in the finite element software FEALPy developed by Wei. Topology optimization has many important applications for engineering, e.g., structural design. The classical compliance minimization is considered as an example to show effectiveness of the algorithmic framework. For optimization, OC based on SIMP and MMA are used.
+
+Numerical examples in 2d and 3d are presented. GPU and Automatic Differentiation are two interesting and useful features of the present framework. The present work makes significant contributions on software development, which is very important in the topology optimization community. The paper can be published in the journal Communications in Computational Physics after minor revisions.
+
+Point 1: Some recent related advances in topology optimization should be discussed in e.g., Introduction. GPU is shown in Table 3 to be very efficient for topology optimization compared with CPU. See recent advance in topology optimization based on GPU (https://www.sciencedirect.com/science/article/abs/pii/S0168874X25000770).
+
+Point 2: Is it normal that in Table 2 the computational costs on Manual Differentiation and AD are nearly the same and AD has no advantage?
+
+Point 3: top of page 6: The fact that the intersection of two sets is empty should be specified.
+
+Point 4: Could you test the simple bridge or the half-wheel benchmark example?
+
+Point 5: "Method of Moving Asymptotes (MMA)" appears at least 3 times (page 6, page 14, and page 23). Please simplify the terminology for only once. Also for the "finite element method (FEM)" (page 2, page 12) and automatic differentiation (AD). FEM in Abstract is not defined.
+
+Point 6: The notation $\mathbb{R}^{d,4}$ is strange. Please check.
+
+Point 7: $V^*$ should be defined in an interval (page 5).
+
+Point 8: Conjugate Gradient, CG -> Conjugate Gradient (CG)
+
+Point 9: page 17: modifications: The displacement field uses a continuous and piecewise linear Lagrange finite element space, while the density field is represented in piecewise constant Lagrange element space, aligning with typical TO discretizations.
+
+Point 10: page 23: what does "refactored" mean?
+
+Point 11: page 24: Figure 11 (left) the design is on triangular meshes rather than quadrilateral mesh as shown in title.
+
+Point 12: A period is missing in the second sentence of the Acknowledgments.
+
+Point 13: A GitHub link for a demo of the codes is suggested to add in the paper.
+
+Point 14: [18] should be updated if it was published.
+
+Point 15: [32]: scheme of this reference seems too simple and two "2007"s.
+
+Point 16: Capitalize the first character for some journal names, e.g., Numerical Software [1], Structural Optimization [3], International Journal for Numerical Methods in Engineering [7], Computer Methods in Applied Mechanics and Engineering [9], [11] ..., etc.
+```
+
+对应作者逐条回复：[PDF](../02-peer-review/marked-up-manuscript/Point-by-Point%20Response%20to%20Reviewers.pdf) · [TeX](../02-peer-review/marked-up-manuscript/Point-by-Point%20Response%20to%20Reviewers.tex)
+
+---
+
+## 📢 2. Decision Letter (Official Acceptance)
 
 **From:** Prof. Tao Tang, Associate Editor\
 **Date:** 19-Jan-2026\
@@ -55,7 +137,7 @@ Accept
 
 ---
 
-## ✉️ 2. Author Response (Final Submission Cover Letter)
+## ✉️ 3. Author Response (Final Submission Cover Letter)
 
 这是我们在上传最终文件时附带的 Cover Letter。我们在信中确认了不选择 Open Access，并说明了文件已打包上传。
 
@@ -94,7 +176,7 @@ Email: weihuayi@xtu.edu.cn
 
 ---
 
-## 📤 3. Submission Log (File Uploads)
+## 📤 4. Submission Log (File Uploads)
 
 以下是 Step 3 实际上传至系统的文件列表：
 
