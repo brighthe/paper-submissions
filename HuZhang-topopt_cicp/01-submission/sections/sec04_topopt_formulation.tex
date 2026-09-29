@@ -1,101 +1,304 @@
 \section{Density-Based Topology Optimization with Independent Stress}
 \label{sec:topopt_formulation}
 
-\subsection{Design Variables, Filtering, Projection, and Material Interpolation}
+\subsection{Design Variables, Density Filter, Projection, and Dual-Parameter Material Interpolation}
 \label{subsec:material_interpolation}
 
-We parameterize the structural layout using an element-wise design variable vector $\boldsymbol{\rho} = \{\rho_e\}_{e=1}^{N_e} \in [0, 1]^{N_e}$. To prevent mesh dependency and checkerboard instabilities, a standard linear density filter with filter radius $R_{\min}$ is applied, followed by a smoothed Heaviside threshold projection:
-\begin{equation}
-\tilde{\rho}_e = \frac{\sum_{i \in \mathcal{N}_e} w_{ei} v_i \rho_i}{\sum_{i \in \mathcal{N}_e} w_{ei} v_i}, \qquad
-\bar{\rho}_e = \frac{\tanh(\beta \eta) + \tanh(\beta (\tilde{\rho}_e - \eta))}{\tanh(\beta \eta) + \tanh(\beta (1 - \eta))},
-\end{equation}
-where $\beta$ is the projection sharpness parameter, $\eta \in (0, 1)$ is the threshold, and $v_i$ is the volume of element $i$.
+The design domain $\Omega \subset \mathbb{R}^d$ is discretized into a finite element mesh $\mathcal{T}_h = \{T_e\}_{e=1}^{N_e}$ consisting of $N_e$ elements. In the density-based framework for continuum TO, each element $T_e$ carries a mathematical design variable $\rho_e \in [0, 1]$, and these variables form the global design vector $\boldsymbol{\rho} = (\rho_1, \dots, \rho_{N_e})^{\mathsf T}$.
 
-Under the complementary energy setting, the compliance tensor $\mathcal{A}(\bar{\rho})$ is interpolated using a dual-parameter penalization:
+To alleviate mesh dependency and checkerboard patterns, and to introduce a spatial smoothing length scale, a linear density filter \cite{Bourdin2001,BrunsTortorelli2001} maps the design variables $\rho_e$ to the filtered element densities $\tilde{\rho}_e$:
 \begin{equation}
-\label{eq:simp_compliance}
-\mathcal{A}(\bar{\rho}_e) = \left( \bar{\rho}_e^p + (1 - \bar{\rho}_e^p)\epsilon_\sigma \right)^{-1} \mathcal{A}_0,
+\label{eq:density_filter}
+\tilde{\rho}_e = \frac{\sum_{j \in \mathcal{N}_e} w_{ej} v_j \rho_j}{\sum_{j \in \mathcal{N}_e} w_{ej} v_j},
 \end{equation}
-where $p \ge 3$ is the penalization exponent, $\epsilon_\sigma = 10^{-6}$ is a small positive parameter preventing singularity in void regions, and $\mathcal{A}_0$ is the compliance tensor of the base solid material.
+where $v_j = |T_j|$ is the measure of element $T_j$ (area in two dimensions, volume in three dimensions), and $\mathcal{N}_e = \{ j \in \{1, \dots, N_e\} : \|\boldsymbol{x}_e - \boldsymbol{x}_j\|_2 \le r_{\min} \}$ is the index set of the elements whose centroids lie within the filter radius $r_{\min}$ of the centroid $\boldsymbol{x}_e = \frac{1}{|T_e|}\int_{T_e} \boldsymbol{x} \,\mathrm{d}x$ of $T_e$. The linearly decaying convolution weights $w_{ej}$ are defined by
+\begin{equation*}
+w_{ej} = \max\bigl(0,\, r_{\min} - \|\boldsymbol{x}_e - \boldsymbol{x}_j\|_2\bigr).
+\end{equation*}
 
-\subsection{Complementary Energy Compliance Formulation}
+To reduce the intermediate densities produced by filtering and to sharpen the material boundaries, we adopt the smoothed Heaviside projection of \cite{Wang2011}, which leads to a three-field representation in terms of the design, filtered, and physical densities:
+\begin{equation}
+\label{eq:heaviside_projection}
+\boldsymbol{\rho} \xrightarrow{\ \text{density filter}\ } \tilde{\boldsymbol{\rho}} \xrightarrow{\ \text{smoothed projection}\ } \bar{\boldsymbol{\rho}},
+\qquad
+\bar{\rho}_e = P_{\beta,\eta_{\mathrm p}}(\tilde{\rho}_e)
+= \frac{\tanh(\beta \eta_{\mathrm p}) + \tanh\!\left[\beta(\tilde{\rho}_e - \eta_{\mathrm p})\right]}
+{\tanh(\beta \eta_{\mathrm p}) + \tanh\!\left[\beta(1 - \eta_{\mathrm p})\right]},
+\end{equation}
+where $\eta_{\mathrm p} \in (0, 1)$ is the projection threshold and $\beta > 0$ controls the sharpness of the projection; $\eta_{\mathrm p}$ is distinct from the stress threshold function $\eta(\cdot)$ introduced later. When the projection is enabled, $\beta$ is increased in stages to sharpen the boundaries; when it is disabled, the identity map $\bar{\rho}_e = \tilde{\rho}_e$ is used. The subsequent material interpolation, state equations, volume evaluation, and local stress constraints are all formulated in terms of the physical density $\bar{\rho}_e$.
+
+If Poisson's ratio is held fixed and only Young's modulus is interpolated, elements of low and intermediate density remain nearly incompressible as $\nu_0 \to 0.5$. They then behave as a fluid-like medium with very low shear resistance but very high resistance to volumetric deformation, which can transmit hydrostatic pressure and be exploited by the optimizer. To make the low- and intermediate-density phase behave as a weak compressible material, we interpolate Young's modulus and Poisson's ratio separately as functions of density (see \cite{BruggiVenini2007}):
+\begin{enumerate}
+\item \emph{Young's modulus interpolation (SIMP)}:
+\begin{equation}
+\label{eq:simp_youngs}
+E(\bar{\rho}_e) = E_{\min} + (E_0 - E_{\min})\, \bar{\rho}_e^{\,p_E},
+\end{equation}
+where $E_0$ is Young's modulus of the isotropic solid material and $E_{\min} > 0$ is a lower bound on the modulus that prevents the compliance operator from becoming undefined at zero modulus; its value is specified for each example. The exponent $p_E$ penalizes intermediate stiffness; we take $p_E = 3$ for the compliance examples and $p_E = 3.5$ for the stress-constrained examples.
+\item \emph{Poisson's ratio relaxation}:
+\begin{equation}
+\label{eq:poisson_relaxation}
+\nu(\bar{\rho}_e) = \nu_{\mathrm{void}} + (\nu_0 - \nu_{\mathrm{void}})\, \bar{\rho}_e^{\,p_\nu},
+\end{equation}
+where $\nu_0$ is the target Poisson's ratio of the solid material (e.g., $\nu_0 = 0.4999$) and $\nu_{\mathrm{void}}$ is the reference Poisson's ratio of the void region. We take $\nu_{\mathrm{void}} = 0.3$ and the relaxation exponent $p_\nu = 1$, so that Poisson's ratio varies linearly with the physical density from the void reference value to the base-material value. This keeps the low- and intermediate-density phase away from the incompressible limit and removes the fluid-like load-carrying mechanism described above. Equation~\eqref{eq:poisson_relaxation} is activated for the nearly incompressible optimization group with $\nu_0 = 0.4999$ in Section~\ref{subsec:benchmark_topopt} and for its fixed-design reanalysis; in the compressible examples Poisson's ratio is fixed at $\nu_0$, and only Young's modulus varies with density according to~\eqref{eq:simp_youngs}.
+\end{enumerate}
+The element compliance operator $\mathcal{A}(\bar{\rho}_e)$ is evaluated using the interpolated material parameters $E(\bar{\rho}_e)$ and $\nu(\bar{\rho}_e)$.
+
+\subsection{State Equations and Complementary Energy Compliance Formulation}
 \label{subsec:compliance_formulation}
 
-Using the reconstructed total stress $\boldsymbol{\sigma} = \boldsymbol{\sigma}_0 + \boldsymbol{\sigma}_g$, the structural compliance is naturally quantified via the complementary strain energy:
+We consider the minimum compliance problem under homogeneous displacement boundary conditions and design-independent external loads. Mixed finite elements take the stress and the displacement simultaneously as state variables and introduce the material distribution through the compliance block $\boldsymbol{A}$ of the saddle-point system (see \cite{BruggiVenini2007}). In the Hu--Zhang discrete framework the total stress is obtained directly from the state equations, so we adopt a complementary-energy objective expressed in terms of the stress, which keeps the evaluation of the objective consistent with the primary variable of the mixed finite element method.
+
+For the continuous linear elasticity problem, taking the test function equal to the solution in the weak form and using the constitutive relation shows that the external-load compliance equals twice the strain energy and also twice the complementary strain energy. Minimizing the compliance and minimizing the complementary strain energy therefore share the same minimizers. To keep the same scale as the external work used in displacement-based methods, we define the discrete objective without the factor $1/2$:
 \begin{equation}
 \label{eq:compliance_obj}
-C(\bar{\boldsymbol{\rho}}) = \frac{1}{2} \int_\Omega \mathcal{A}(\bar{\boldsymbol{\rho}}) \boldsymbol{\sigma} : \boldsymbol{\sigma} \,\mathrm{d}x = \frac{1}{2} a(\boldsymbol{\sigma}, \boldsymbol{\sigma}; \bar{\boldsymbol{\rho}}).
+C(\boldsymbol{\rho}, \boldsymbol{\sigma}_h)
+= \int_\Omega \mathcal{A}(\bar{\boldsymbol{\rho}}) \boldsymbol{\sigma}_h : \boldsymbol{\sigma}_h \,\mathrm{d}x
+= \sum_{e=1}^{N_e} \boldsymbol{s}_e^{\mathsf T} \boldsymbol{A}_e(\bar{\rho}_e) \boldsymbol{s}_e,
 \end{equation}
-The compliance minimization problem with a prescribed volume fraction $V_f \in (0, 1)$ is formulated as:
+where $\bar{\boldsymbol{\rho}} = \bar{\boldsymbol{\rho}}(\boldsymbol{\rho})$ is the physical density obtained by the filtering and projection of Section~\ref{subsec:material_interpolation}, $\boldsymbol{s}_e$ is the coefficient vector of the total stress $\boldsymbol{\sigma}_h|_{T_e}$ with respect to the local stress basis of the element, including the contribution of the traction lifting, and $\boldsymbol{A}_e$ is the corresponding local compliance matrix with $(a,b)$ entry $\int_{T_e} \mathcal{A}(\bar{\rho}_e) \boldsymbol{\phi}_{e,b} : \boldsymbol{\phi}_{e,a} \,\mathrm{d}x$, where $\{\boldsymbol{\phi}_{e,a}\}_{a=1}^{n_e}$ is a basis of $\mathbb{P}_k(T_e;\mathbb{S})$. Equation~\eqref{eq:compliance_obj} is twice the discrete complementary strain energy and can be evaluated directly by element-wise integration and summation.
+
+The state constraint is expressed in terms of the homogeneous stress unknowns of Section~\ref{subsec:saddle_point_system}, and the total stress is reconstructed as $\boldsymbol{\sigma}_h = \boldsymbol{\sigma}_{0,h} + \boldsymbol{\sigma}_{g,h}$. The objective of this section and the stress constraints introduced later are both evaluated with this total stress $\boldsymbol{\sigma}_h$. For a fixed mesh and the fixed stabilization scale of Section~\ref{subsec:jump_stabilization}, $\boldsymbol{A}(\bar{\boldsymbol{\rho}})$ depends on the design variables through $E(\bar{\rho}_e)$ and $\nu(\bar{\rho}_e)$, whereas $\boldsymbol{B}$ and $\boldsymbol{C}$ remain unchanged. The complementary-energy-based minimum compliance model then reads
 \begin{equation}
 \label{eq:topopt_compliance_opt}
 \begin{aligned}
-\min_{\boldsymbol{\rho}} \quad & C(\bar{\boldsymbol{\rho}}) = \frac{1}{2} a(\boldsymbol{\sigma}_0 + \boldsymbol{\sigma}_g, \boldsymbol{\sigma}_0 + \boldsymbol{\sigma}_g; \bar{\boldsymbol{\rho}}) \\
-\text{s.t.} \quad & \mathbf{A}(\bar{\boldsymbol{\rho}})\mathbf{U}_\sigma + \mathbf{B}^{\mathsf T}\mathbf{U}_u = \mathbf{F}_\sigma(\bar{\boldsymbol{\rho}}), \\
-& \mathbf{B}\mathbf{U}_\sigma = \mathbf{F}_u, \\
-& \frac{\sum_{e=1}^{N_e} v_e \bar{\rho}_e}{\sum_{e=1}^{N_e} v_e} - V_f \le 0, \qquad 0 \le \rho_e \le 1, \quad e=1,\ldots,N_e.
+\min_{\boldsymbol{\rho}} \quad & C(\boldsymbol{\rho}, \boldsymbol{\sigma}_h)
+= \sum_{e=1}^{N_e} \boldsymbol{s}_e^{\mathsf T} \boldsymbol{A}_e(\bar{\rho}_e) \boldsymbol{s}_e \\
+\text{s.t.} \quad &
+\begin{bmatrix} \boldsymbol{A}(\bar{\boldsymbol{\rho}}) & \boldsymbol{B} \\ \boldsymbol{B}^{\mathsf T} & -\boldsymbol{C} \end{bmatrix}
+\begin{bmatrix} \boldsymbol{s}_0 \\ \boldsymbol{u} \end{bmatrix}
+= \begin{bmatrix} \boldsymbol{f}_\sigma(\bar{\boldsymbol{\rho}}) \\ \boldsymbol{f}_u \end{bmatrix}, \\
+& \frac{\sum_{e=1}^{N_e} v_e \bar{\rho}_e}{\sum_{e=1}^{N_e} v_e} \le \bar{V}, \\
+& 0 \le \rho_e \le 1, \quad e = 1, \dots, N_e,
 \end{aligned}
 \end{equation}
+where $v_e = |T_e|$ is the element volume and $\bar{V} \in (0, 1)$ is the upper bound on the material volume fraction. The right-hand side is given by~\eqref{eq:saddle_rhs}; under homogeneous displacement conditions its $\boldsymbol{u}_D$ term and $\ell_h^D$ vanish. Let $\boldsymbol{s}_g$ denote the coefficient vector of $\boldsymbol{\sigma}_{g,h}$ with respect to the global basis of $\boldsymbol{\Sigma}_h^k$; extending $\boldsymbol{s}_0$ by zero at the constrained degrees of freedom on $\Gamma_N$, the global coefficient vector of the total stress is $\boldsymbol{s} = \boldsymbol{s}_0 + \boldsymbol{s}_g$, and $\boldsymbol{s}_e$ is its sub-vector associated with element $T_e$. The lifting $\boldsymbol{\sigma}_{g,h}$ is design-independent, but the component $-\int_\Omega \mathcal{A}(\bar{\boldsymbol{\rho}}) \boldsymbol{\sigma}_{g,h} : \boldsymbol{\Phi}_i \,\mathrm{d}x$ of $\boldsymbol{f}_\sigma$ still depends on the material distribution, and the sensitivity analysis must account for this dependence.
 
-\subsection{Denominator-Free Relaxed Local Stress Constraints}
+This model evaluates the compliance directly from the total stress and the local compliance matrices, without constructing the displacement-form Schur complement $\boldsymbol{B}^{\mathsf T} \boldsymbol{A}(\bar{\boldsymbol{\rho}})^{-1} \boldsymbol{B} + \boldsymbol{C}$ and its design derivative. Under homogeneous displacement boundary conditions and design-independent loads, the mixed variational relations allow the implicit stress derivative to be eliminated from the objective sensitivity when no stabilization is present. The low-order stabilized formulation uses the same objective~\eqref{eq:compliance_obj}, but this simplification no longer applies. Its sensitivities are therefore evaluated using the general adjoint formula in Section~\ref{subsec:adjoint_sensitivity}.
+
+\subsection{Stress-Constrained Topology Optimization with a Relaxed Stress Threshold}
 \label{subsec:stress_constraints}
 
-For local stress-constrained problems, conventional formulations divide the microscopic stress by the penalized density ($\boldsymbol{\sigma}/\bar{\rho}^q$), creating severe numerical singularities when $\bar{\rho} \to 0$. To overcome this, we adopt a denominator-free relaxed apparent von Mises stress formulation.
-
-The element apparent von Mises stress $\sigma_{\mathrm{vM},e}$ is computed from the total stress $\boldsymbol{\sigma}$:
-\begin{equation}
-\sigma_{\mathrm{vM},e} = \left( \frac{1}{v_e} \int_{T_e} \frac{3}{2} \operatorname{dev}(\boldsymbol{\sigma}) : \operatorname{dev}(\boldsymbol{\sigma}) \,\mathrm{d}x \right)^{1/2},
-\end{equation}
-where $\operatorname{dev}(\boldsymbol{\sigma}) = \boldsymbol{\sigma} - \frac{1}{d}\operatorname{tr}(\boldsymbol{\sigma})\mathbb{I}$. The local stress constraint is defined without division:
+We consider the minimization of the total structural volume subject to local stress constraints~\cite{Duysinx1998,BruggiVenini2008}, and impose a local von Mises stress constraint on every element of the domain:
 \begin{equation}
 \label{eq:relaxed_stress_constraint}
-g_e(\boldsymbol{\sigma}, \bar{\boldsymbol{\rho}}) = \sigma_{\mathrm{vM},e}(\boldsymbol{\sigma}) - \bar{\rho}_e^q \sigma_{\max} \le 0, \qquad e=1,\ldots,N_e,
+g_e(\boldsymbol{\rho}, \boldsymbol{\sigma}_h)
+= \frac{\sigma_{\mathrm{vm}}(\boldsymbol{\sigma}_{h,e})}{\bar{\sigma}} - \eta(\bar{\rho}_e) \le 0,
+\qquad e = 1, \dots, N_e,
 \end{equation}
-where $\sigma_{\max}$ is the allowable material yield limit, and $q \in [0.5, 1]$ relaxes the allowable threshold in low-density void regions, completely eliminating the ``stress singularity'' phenomenon.
+where $\bar{\sigma}$ is the allowable stress of the solid material and $\boldsymbol{\sigma}_{h,e}$ is the apparent stress at the centroid of element $T_e$. To compare the two finite element discretizations, both use the apparent stress and the same $\epsilon$-relaxed constraint: LFEM recovers the apparent stress $\mathcal{A}(\bar{\rho}_e)^{-1} \boldsymbol{\varepsilon}(\boldsymbol{u}_h)$ from the displacement gradient and the interpolated constitutive law, whereas HZMFEM evaluates the reconstructed total stress $\boldsymbol{\sigma}_h = \boldsymbol{\sigma}_{0,h} + \boldsymbol{\sigma}_{g,h}$. The two share the same volume objective, threshold function, and evaluation points, and differ only in the source of the stress. Under plane stress conditions ($\sigma_{zz} = \sigma_{xz} = \sigma_{yz} = 0$), the von Mises stress is
+\begin{equation*}
+\sigma_{\mathrm{vm}}(\boldsymbol{\sigma}_{h,e})
+= \sqrt{\sigma_{xx}^2 - \sigma_{xx}\sigma_{yy} + \sigma_{yy}^2 + 3\sigma_{xy}^2},
+\end{equation*}
+where $\sigma_{xx}, \sigma_{yy}, \sigma_{xy}$ are the components of $\boldsymbol{\sigma}_{h,e}$; for plane strain and three-dimensional problems the corresponding von Mises expression is used and the remaining derivation is unchanged.
+
+If the allowable-stress condition is imposed directly on the solid-material stress, the constraint does not vanish as the element density tends to zero; the feasible set then contains degenerate lower-dimensional branches, giving rise to singular optima that gradient-based methods can hardly reach~\cite{Sved1968,Kirsch1990,ChengJiang1992}. Following the $\epsilon$-relaxation and the density-dependent stress limits used in mixed finite element formulations~\cite{Cheng1997,Duysinx1998,BruggiVenini2008}, we adopt the following threshold with a positive lower bound:
+\begin{equation}
+\label{eq:stress_threshold}
+\eta(\bar{\rho}_e) = m_E(\bar{\rho}_e) + \epsilon\bigl(1 - m_E(\bar{\rho}_e)\bigr),
+\qquad m_E(\bar{\rho}_e) = \frac{E(\bar{\rho}_e)}{E_0},
+\end{equation}
+where $m_E$ is the relative stiffness, $E(\bar{\rho}_e)$ is given by~\eqref{eq:simp_youngs}, and $\epsilon \in (0, 1)$ is the relaxation parameter. Let $\boldsymbol{\sigma}_h^{\mathrm{app}}$ denote the apparent stress field, with element centroid value $\boldsymbol{\sigma}_e^{\mathrm{app}} := \boldsymbol{\sigma}_{h,e}$, and define the solid-material stress $\boldsymbol{\sigma}_e^{\mathrm{solid}} := \boldsymbol{\sigma}_e^{\mathrm{app}} / m_E(\bar{\rho}_e)$. When Poisson's ratio is held fixed, $\mathcal{A}(\bar{\rho}_e)^{-1} = m_E(\bar{\rho}_e)\, \mathcal{A}(1)^{-1}$, so $\boldsymbol{\sigma}_e^{\mathrm{solid}}$ is the stress carried by the solid material under the same strain, which in the displacement-based method reads $\mathcal{A}(1)^{-1} \boldsymbol{\varepsilon}(\boldsymbol{u}_h)$. By the first-order homogeneity of $\sigma_{\mathrm{vm}}$, $\sigma_{\mathrm{vm}}(\boldsymbol{\sigma}_e^{\mathrm{app}}) = m_E\, \sigma_{\mathrm{vm}}(\boldsymbol{\sigma}_e^{\mathrm{solid}})$, so for $m_E > 0$ the constraint~\eqref{eq:relaxed_stress_constraint} is equivalent to $\sigma_{\mathrm{vm}}(\boldsymbol{\sigma}_e^{\mathrm{solid}}) / \bar{\sigma} \le 1 + \epsilon(1/m_E - 1)$, which relaxes the solid-material stress limit in regions of low stiffness. Hence~\eqref{eq:relaxed_stress_constraint} is an equivalent rewriting of the $\epsilon$-relaxation: avoiding the explicit division by the density removes the numerical ill-conditioning as $m_E \to 0$, while the relaxation itself still comes from $\epsilon > 0$.
+
+The threshold satisfies $\eta(1)=1$, preserving the allowable-stress condition for the solid material. At $\bar{\rho}_e=0$, it remains positive: $\eta(0)=\epsilon+(1-\epsilon)E_{\min}/E_0$. The apparent stress is scaled by the small residual stiffness ratio, $\boldsymbol{\sigma}_e^{\mathrm{app}}=(E_{\min}/E_0)\boldsymbol{\sigma}_e^{\mathrm{solid}}$. Thus, the constraint becomes inactive when the corresponding apparent von Mises stress is below the relaxed limit $\eta(0)\bar{\sigma}$. We use a fixed relaxation parameter $\epsilon = 10^{-3}$ and do not apply $\epsilon$-continuation.
+
+Accordingly, the volume minimization problem with local stress constraints under the Hu--Zhang discretization reads
+\begin{equation}
+\label{eq:topopt_stress_opt}
+\begin{aligned}
+\min_{\boldsymbol{\rho}} \quad & f_V(\boldsymbol{\rho})
+= \frac{\sum_{e=1}^{N_e} v_e \bar{\rho}_e}{\sum_{e=1}^{N_e} v_e} \\
+\text{s.t.} \quad &
+\begin{bmatrix} \boldsymbol{A}(\bar{\boldsymbol{\rho}}) & \boldsymbol{B} \\ \boldsymbol{B}^{\mathsf T} & -\boldsymbol{C} \end{bmatrix}
+\begin{bmatrix} \boldsymbol{s}_0 \\ \boldsymbol{u} \end{bmatrix}
+= \begin{bmatrix} \boldsymbol{f}_\sigma(\bar{\boldsymbol{\rho}}) \\ \boldsymbol{f}_u \end{bmatrix}, \\
+& g_e(\boldsymbol{\rho}, \boldsymbol{\sigma}_h)
+= \frac{\sigma_{\mathrm{vm}}(\boldsymbol{\sigma}_{h,e})}{\bar{\sigma}} - \eta(\bar{\rho}_e) \le 0,
+\quad e = 1, \dots, N_e, \\
+& 0 \le \rho_e \le 1, \quad e = 1, \dots, N_e,
+\end{aligned}
+\end{equation}
+where the physical density is determined as in Section~\ref{subsec:material_interpolation}, and the state equations and the reconstruction of the total stress follow Section~\ref{subsec:compliance_formulation}. Since the volume of the design domain is fixed, minimizing the volume fraction $f_V$ is equivalent to minimizing the total structural volume. The LFEM counterpart replaces the state equations by $\boldsymbol{K}(\bar{\boldsymbol{\rho}}) \boldsymbol{u} = \boldsymbol{f}$ and recovers the apparent stress through the interpolated constitutive law; the remaining components are identical to~\eqref{eq:topopt_stress_opt}.
 
 \subsection{Augmented Lagrangian Formulation}
 \label{subsec:augmented_lagrangian}
 
-To solve the large number of local stress constraints efficiently, we construct an Augmented Lagrangian (AL) functional:
+Problem~\eqref{eq:topopt_stress_opt} imposes one local stress constraint on every element, so the number of constraints grows with the mesh size, and handling such a large number of constraints directly increases the cost of solving the optimization subproblems. We therefore follow the augmented Lagrangian method (ALM) of Senhora et al.~\cite{Senhora2020} for local stress constraints: the local constraints are incorporated into the objective through augmentation terms and normalized by the number of constraints, giving the scalar augmented Lagrangian objective
 \begin{equation}
 \label{eq:al_functional}
-\mathcal{L}(\boldsymbol{\rho}, \boldsymbol{\lambda}, \mu) = f_0(\bar{\boldsymbol{\rho}}) + \sum_{e=1}^{N_e} \left[ \lambda_e \max\left( g_e(\boldsymbol{\sigma},\bar{\boldsymbol{\rho}}), -\frac{\lambda_e}{2\mu} \right) + \mu \max\left( g_e(\boldsymbol{\sigma},\bar{\boldsymbol{\rho}}), -\frac{\lambda_e}{2\mu} \right)^2 \right],
+\mathcal{L}(\boldsymbol{\rho}, \boldsymbol{\sigma}_h)
+= f_V(\boldsymbol{\rho}) + \frac{1}{N_e} \sum_{e=1}^{N_e} \mathcal{P}_e(g_e, \lambda_e, \mu_e),
 \end{equation}
-where $f_0(\bar{\boldsymbol{\rho}})$ is the objective function (e.g., structural volume fraction), $\lambda_e$ is the Lagrange multiplier associated with element $e$, and $\mu > 0$ is the quadratic penalty parameter. Multipliers are updated in outer iterations via:
+where $f_V$ is the volume fraction objective of~\eqref{eq:topopt_stress_opt}. Since each element carries one local constraint, the number of constraints is $N_e$, and the factor $1/N_e$ mitigates the imbalance in magnitude between the augmentation terms and the objective as the number of constraints increases. For the local constraints defined in~\eqref{eq:relaxed_stress_constraint}, we adopt the following form of the augmentation term~\cite{GiraldoLondono2021}. Let $h_e = \max(g_e, -\lambda_e/\mu_e)$; the local augmentation term $\mathcal{P}_e = \lambda_e h_e + \frac{\mu_e}{2} h_e^2$ can then be written equivalently as
 \begin{equation}
-\lambda_e^{(k+1)} = \max\left( 0, \lambda_e^{(k)} + 2\mu^{(k)} g_e(\boldsymbol{\sigma}^{(k)},\bar{\boldsymbol{\rho}}^{(k)}) \right).
+\label{eq:al_penalty_term}
+\mathcal{P}_e =
+\begin{cases}
+\lambda_e g_e + \dfrac{\mu_e}{2} g_e^2, & \text{if } g_e > -\dfrac{\lambda_e}{\mu_e}, \\[6pt]
+-\dfrac{\lambda_e^2}{2\mu_e}, & \text{if } g_e \le -\dfrac{\lambda_e}{\mu_e},
+\end{cases}
 \end{equation}
+where $\lambda_e \ge 0$ is the Lagrange multiplier and $\mu_e > 0$ is the penalty parameter. In the $k$-th outer iteration, the multipliers $\boldsymbol{\lambda}^{(k)}$ and penalty parameters $\boldsymbol{\mu}^{(k)}$ are held fixed, and the augmented subproblem subject only to the bounds on the design variables is solved:
+\begin{equation}
+\label{eq:al_subproblem}
+\begin{aligned}
+\min_{\boldsymbol{\rho}} \quad &
+\mathcal{L}^{(k)}(\boldsymbol{\rho})
+= f_V(\boldsymbol{\rho}) + \frac{1}{N_e} \sum_{e=1}^{N_e}
+\mathcal{P}_e\!\left(g_e(\boldsymbol{\rho}, \boldsymbol{\sigma}_h(\boldsymbol{\rho})), \lambda_e^{(k)}, \mu_e^{(k)}\right), \\
+\text{s.t.} \quad & 0 \le \rho_e \le 1, \qquad e = 1, \dots, N_e,
+\end{aligned}
+\end{equation}
+where $\boldsymbol{\sigma}_h(\boldsymbol{\rho})$ is obtained by solving the state equations in~\eqref{eq:topopt_stress_opt} and reconstructing the total stress. The state variables have been eliminated from this subproblem, so only the bounds on the design variables remain explicit. After the subproblem is solved approximately, the outer multipliers are updated with the constraint values $g_e$ at the approximate solution and projected onto the interval $[0, \lambda_{\max}]$:
+\begin{equation}
+\label{eq:multiplier_update}
+\lambda_e^{(k+1)} = \min\left(\lambda_{\max},\, \max\left(0,\, \lambda_e^{(k)} + \mu_e^{(k)} g_e\right)\right),
+\end{equation}
+where $\lambda_{\max}$ is the upper bound on the multipliers, following the safeguarded augmented Lagrangian scheme of Andreani et al.~\cite{Andreani2008}. If the constraint of an element cannot be satisfied throughout the iterations, its multiplier stops growing at $\lambda_{\max}$ and the final design may be infeasible in that element, so constraint satisfaction of the final design must be re-checked element by element. The subproblem~\eqref{eq:al_subproblem} is solved approximately in the inner loop by the method of moving asymptotes (MMA)~\cite{Svanberg1987}; the update rule for the penalty parameters, the final constraint check, and the complete solution procedure are given in Section~\ref{subsec:algorithms}.
 
 \subsection{Consistent Adjoint Sensitivity Analysis}
 \label{subsec:adjoint_sensitivity}
 
-A crucial novelty of the present formulation is accounting for the design dependence embedded in the lifted right-hand side $\mathbf{F}_\sigma(\bar{\boldsymbol{\rho}}) = -\mathbf{A}(\bar{\boldsymbol{\rho}})\mathbf{U}_{\sigma_g}$. 
+This section derives the sensitivities of the objective functions with respect to the physical density, accounting for the design dependence of the right-hand side $\boldsymbol{f}_\sigma(\bar{\boldsymbol{\rho}})$. The derivation is carried out with the mesh, the multipliers and penalty parameters, the projection parameters, and the stabilization scale held fixed, and with a design-independent traction lifting; the state matrix is assumed nonsingular and the objective differentiable. Throughout, $\partial/\partial\bar{\rho}_e$ denotes the partial derivative with the state variables held fixed, and $\mathrm{d}/\mathrm{d}\bar{\rho}_e$ the total derivative that includes the state response.
 
-For an arbitrary response functional $\Phi(\boldsymbol{\sigma}_0, \bar{\boldsymbol{\rho}})$, its total sensitivity with respect to projected density $\bar{\rho}_e$ is obtained by defining the Lagrangian:
-\begin{equation}
-\mathcal{L}_{\mathrm{state}} = \Phi(\boldsymbol{\sigma}_0, \bar{\boldsymbol{\rho}}) - \boldsymbol{\lambda}_\sigma^{\mathsf T} \left( \mathbf{A}(\bar{\boldsymbol{\rho}})\mathbf{U}_\sigma + \mathbf{B}^{\mathsf T}\mathbf{U}_u - \mathbf{F}_\sigma(\bar{\boldsymbol{\rho}}) \right) - \boldsymbol{\lambda}_u^{\mathsf T} \left( \mathbf{B}\mathbf{U}_\sigma - \mathbf{F}_u \right).
-\end{equation}
-The discrete adjoint system reads:
+For the augmented Lagrangian objective $J = \mathcal{L}$ or the complementary-energy objective $J = C$, we introduce the adjoint variables $(\boldsymbol{z}_\sigma, \boldsymbol{z}_u)$ and solve the adjoint system
 \begin{equation}
 \label{eq:adjoint_system}
-\begin{bmatrix}
-\mathbf{A}(\bar{\boldsymbol{\rho}}) & \mathbf{B}^{\mathsf T} \\
-\mathbf{B} & \mathbf{0}
-\end{bmatrix}
-\begin{bmatrix}
-\boldsymbol{\lambda}_\sigma \\
-\boldsymbol{\lambda}_u
-\end{bmatrix}
-=
-\begin{bmatrix}
-\frac{\partial \Phi}{\partial \mathbf{U}_\sigma} \\
-\mathbf{0}
-\end{bmatrix}.
+\begin{bmatrix} \boldsymbol{A}(\bar{\boldsymbol{\rho}}) & \boldsymbol{B} \ \boldsymbol{B}^{\mathsf T} & -\boldsymbol{C} \end{bmatrix}
+\begin{bmatrix} \boldsymbol{z}_\sigma \ \boldsymbol{z}_u \end{bmatrix}
+= \begin{bmatrix} \nabla_{\boldsymbol{s}_0} J \ \boldsymbol{0} \end{bmatrix}.
 \end{equation}
+Since the state matrix is symmetric, the adjoint system shares its coefficient matrix with the state equations. Let $\boldsymbol{\zeta}_h = \sum_i (z_\sigma)_i \boldsymbol{\Phi}_i$ denote the adjoint stress. By the chain rule applied to the material interpolation~\eqref{eq:simp_youngs}--\eqref{eq:poisson_relaxation},
+\begin{equation*}
+\mathcal{A}'_e := \frac{\partial \mathcal{A}}{\partial \bar{\rho}_e}
+= \frac{\partial \mathcal{A}}{\partial E} \frac{\mathrm{d}E}{\mathrm{d}\bar{\rho}_e}
++ \frac{\partial \mathcal{A}}{\partial \nu} \frac{\mathrm{d}\nu}{\mathrm{d}\bar{\rho}_e},
+\end{equation*}
+where the second term vanishes when Poisson's ratio is fixed.
 
-\textbf{Special Case 1: Compliance without jump stabilization.} For higher-order elements ($k \ge d+1$) without jump stabilization, the adjoint solution simplifies analytically to $\boldsymbol{\lambda}_\sigma = \mathbf{U}_\sigma + \mathbf{U}_{\sigma_g}$, which recovers the explicit sensitivity:
+For the augmented Lagrangian objective $\mathcal{L}$, let $\omega_e = \partial\mathcal{P}_e/\partial g_e = \max(0, \lambda_e + \mu_e g_e)$. The adjoint load and the total derivative with respect to the physical density are, respectively,
+\begin{equation*}
+(\nabla_{\boldsymbol{s}_0} \mathcal{L})_i
+= \frac{1}{N_e \bar{\sigma}} \sum_{m=1}^{N_e} \omega_m
+\frac{\partial \sigma_{\mathrm{vm}}(\boldsymbol{\sigma}_{h,m})}{\partial s_{0,i}},
+\end{equation*}
 \begin{equation}
-\frac{\partial C}{\partial \bar{\rho}_e} = -\frac{1}{2} \int_{T_e} \frac{\partial \mathcal{A}}{\partial \bar{\rho}_e} \boldsymbol{\sigma} : \boldsymbol{\sigma} \,\mathrm{d}x.
+\label{eq:al_gradient}
+\frac{\mathrm{d}\mathcal{L}}{\mathrm{d}\bar{\rho}_e}
+= \frac{v_e}{\sum_m v_m} - \frac{\omega_e}{N_e} \eta'(\bar{\rho}_e)
+- \int_{T_e} \mathcal{A}'_e \boldsymbol{\sigma}_h : \boldsymbol{\zeta}_h \,\mathrm{d}x,
+\qquad \eta'(\bar{\rho}_e) = (1 - \epsilon)\, m_E'(\bar{\rho}_e),
+\end{equation}
+where the integral term combines the design derivatives of the state matrix and of the right-hand side $\boldsymbol{f}_\sigma(\bar{\boldsymbol{\rho}})$ and is therefore expressed in terms of the reconstructed total stress $\boldsymbol{\sigma}_h$. The von Mises stress and its derivative are evaluated at the element centroids as defined in~\eqref{eq:relaxed_stress_constraint}, and the gradient formula holds wherever the objective is differentiable.
+
+For the complementary-energy objective $C$, differentiating~\eqref{eq:compliance_obj} gives the adjoint load $(\nabla_{\boldsymbol{s}_0} C)_i = 2\int_\Omega \mathcal{A}(\bar{\boldsymbol{\rho}}) \boldsymbol{\sigma}_h : \boldsymbol{\Phi}_i \,\mathrm{d}x$. With the corresponding $\boldsymbol{\zeta}_h$ obtained from~\eqref{eq:adjoint_system},
+\begin{equation}
+\label{eq:compliance_gradient_general}
+\frac{\mathrm{d}C}{\mathrm{d}\bar{\rho}_e}
+= \int_{T_e} \mathcal{A}'_e \boldsymbol{\sigma}_h : (\boldsymbol{\sigma}_h - \boldsymbol{\zeta}_h) \,\mathrm{d}x.
+\end{equation}
+In the absence of stabilization, under homogeneous displacement conditions and design-independent loads, the adjoint system has the explicit solution $\boldsymbol{z}_\sigma = \boldsymbol{0}$, $\boldsymbol{z}_u = -2\boldsymbol{u}$, i.e., $\boldsymbol{\zeta}_h = \boldsymbol{0}$, so no separate adjoint solve is required and~\eqref{eq:compliance_gradient_general} reduces to
+\begin{equation}
+\label{eq:compliance_gradient_explicit}
+\frac{\mathrm{d}C}{\mathrm{d}\bar{\rho}_e}
+= \boldsymbol{s}_e^{\mathsf T} \frac{\partial \boldsymbol{A}_e}{\partial \bar{\rho}_e} \boldsymbol{s}_e,
+\qquad c_h = 0,
+\end{equation}
+where $\boldsymbol{s}_e$ and $\boldsymbol{A}_e$ are defined in~\eqref{eq:compliance_obj}; the low-order stabilized scheme ($1 \le k \le d$, $c_h \ne 0$) uses~\eqref{eq:compliance_gradient_general}.
+
+The LFEM counterpart uses the displacement state equation $\boldsymbol{K}(\bar{\boldsymbol{\rho}}) \boldsymbol{u} = \boldsymbol{f}$. For the augmented objective $\mathcal{L}(\boldsymbol{\rho}, \boldsymbol{u})$ under design-independent loads, solving the adjoint equation $\boldsymbol{K}(\bar{\boldsymbol{\rho}}) \boldsymbol{z} = \nabla_{\boldsymbol{u}} \mathcal{L}$, which shares the symmetric stiffness matrix with the state equation, gives
+\begin{equation}
+\label{eq:lfem_al_gradient}
+\frac{\mathrm{d}\mathcal{L}}{\mathrm{d}\bar{\rho}_e}
+= \left.\frac{\partial \mathcal{L}}{\partial \bar{\rho}_e}\right|_{\boldsymbol{u}}
+- \boldsymbol{z}^{\mathsf T} \frac{\partial \boldsymbol{K}}{\partial \bar{\rho}_e} \boldsymbol{u},
+\end{equation}
+where the partial derivative at fixed state consists of three parts: $v_e/\sum_m v_m$ from the volume objective, $-\omega_e \eta'(\bar{\rho}_e)/N_e$ from the relaxed threshold, and the explicit density dependence of the apparent stress $\mathcal{A}(\bar{\rho}_e)^{-1} \boldsymbol{\varepsilon}(\boldsymbol{u}_h)$ through the interpolated constitutive law; the last term is absent from~\eqref{eq:al_gradient} because the stress is a state variable in HZMFEM. For the compliance objective, LFEM takes the external work $C = \boldsymbol{f}^{\mathsf T} \boldsymbol{u}$, whose adjoint solution is $\boldsymbol{z} = \boldsymbol{u}$~\cite{BendsoeSigmund2004}, and the gradient is
+\begin{equation}
+\label{eq:lfem_compliance_gradient}
+\frac{\mathrm{d}C}{\mathrm{d}\bar{\rho}_e}
+= -\boldsymbol{u}^{\mathsf T} \frac{\partial \boldsymbol{K}}{\partial \bar{\rho}_e} \boldsymbol{u}.
 \end{equation}
 
-\textbf{Special Case 2: Low-order stabilized formulation.} For $1 \le k \le d$, the jump stabilization introduces inter-element couplings, requiring the full numerical solution of the discrete adjoint system~\eqref{eq:adjoint_system}. The sensitivities are then evaluated by chain rule with the density filter and Heaviside projection.
+Finally, for $J \in \{\mathcal{L}, C\}$, the gradient is transferred back to the design variables through the projection~\eqref{eq:heaviside_projection} and the filter~\eqref{eq:density_filter}:
+\begin{equation}
+\label{eq:design_chain_rule}
+\frac{\mathrm{d}J}{\mathrm{d}\rho_j}
+= \sum_{e:\, j \in \mathcal{N}_e} \frac{\mathrm{d}J}{\mathrm{d}\bar{\rho}_e}
+P'_{\beta,\eta_{\mathrm p}}(\tilde{\rho}_e)
+\frac{w_{ej} v_j}{\sum_{m \in \mathcal{N}_e} w_{em} v_m},
+\end{equation}
+where the derivative of the projection is
+\begin{equation*}
+P'_{\beta,\eta_{\mathrm p}}(\tilde{\rho}_e)
+= \frac{\beta\left\{1 - \tanh^2\!\left[\beta(\tilde{\rho}_e - \eta_{\mathrm p})\right]\right\}}
+{\tanh(\beta \eta_{\mathrm p}) + \tanh\!\left[\beta(1 - \eta_{\mathrm p})\right]}.
+\end{equation*}
+The volume fraction $f_V$ follows the same rule with $\mathrm{d}f_V/\mathrm{d}\bar{\rho}_e = v_e/\sum_m v_m$; when the projection is disabled (identity map), $P'_{\beta,\eta_{\mathrm p}} = 1$.
+
+\subsection{Optimization Algorithms and Numerical Workflows}
+\label{subsec:algorithms}
+
+Problem~\eqref{eq:topopt_compliance_opt} is solved by MMA or by the optimality criteria (OC) method~\cite{BendsoeSigmund2004}; problem~\eqref{eq:topopt_stress_opt} is solved by the combination of an outer ALM loop and an inner MMA loop described in Section~\ref{subsec:augmented_lagrangian}, denoted ALM--MMA.
+
+\subsubsection{Single-Loop Algorithm for Compliance Minimization}
+
+Algorithm~\ref{alg:compliance_single_loop} summarizes the single-loop procedure for problem~\eqref{eq:topopt_compliance_opt}, in which only the density filter is applied and the state equations are solved by either HZMFEM or LFEM.
+
+\begin{algorithm}[H]
+\caption{Single-loop optimization procedure based on MMA or OC}
+\label{alg:compliance_single_loop}
+\begin{algorithmic}[1]
+\Require Initial design $\boldsymbol{\rho}^{(0)}$; filter parameters; optimizer type (MMA or OC) and its parameters; volume fraction bound $\bar{V}$; move limit $m$; stopping parameters $\varepsilon_\rho$, $N_{\max}$.
+\Ensure Final design variables $\boldsymbol{\rho}^*$ with the corresponding physical density $\bar{\boldsymbol{\rho}}$, compliance $C$, and volume fraction $f_V$.
+\State Set $n = 0$, $\Delta_\rho^{(0)} = \infty$; initialize the MMA asymptotes and design history if MMA is used.
+\State Filter $\boldsymbol{\rho}^{(0)}$; solve the state equations; compute $C^{(0)}$ and $f_V^{(0)}$.
+\While{the stopping criterion is not met and $n < N_{\max}$}
+\State Compute $\mathrm{d}C/\mathrm{d}\rho_e$ and $\mathrm{d}f_V/\mathrm{d}\rho_e$.
+\State Update $\boldsymbol{\rho}^{(n+1)}$ by MMA or OC under the volume constraint, the design bounds, and the move limit.
+\State Filter; solve the state equations; compute $C^{(n+1)}$ and $f_V^{(n+1)}$.
+\State Compute $\Delta_\rho^{(n+1)} = \|\boldsymbol{\rho}^{(n+1)} - \boldsymbol{\rho}^{(n)}\|_\infty$.
+\State Set $n \leftarrow n + 1$; the stopping criterion is met when $\Delta_\rho^{(n)} \le \varepsilon_\rho$ and $f_V^{(n)} \le \bar{V}$.
+\EndWhile
+\State \Return $\boldsymbol{\rho}^* = \boldsymbol{\rho}^{(n)}$ with the corresponding results.
+\end{algorithmic}
+\end{algorithm}
+
+In step 5 of Algorithm~\ref{alg:compliance_single_loop}, MMA constructs and solves an approximate subproblem for the objective and volume constraint using moving asymptotes. Alternatively, OC uses the damped multiplicative update of Andreassen et al.~\cite{Andreassen2011}, with the multiplier determined by bisection to satisfy the volume constraint. Both updates respect the design-variable bounds and the move limit $m$. The volume is evaluated using the filtered physical density. The move limit $m$ and the OC damping exponent $\xi$ are specified for each example.
+
+\subsubsection{Nested Two-Loop Algorithm for Stress-Constrained Volume Minimization}
+
+Algorithm~\ref{alg:stress_alm_mma} summarizes the nested two-loop procedure for problem~\eqref{eq:topopt_stress_opt}, in which the density filter and the projection are applied and the state equations are solved by either HZMFEM or LFEM; $\boldsymbol{\rho}^{k,j}$ denotes the design after $j$ inner updates within outer step $k$.
+
+\begin{algorithm}[!htbp]
+\caption{Nested two-loop optimization procedure based on ALM--MMA}
+\label{alg:stress_alm_mma}
+\begin{algorithmic}[1]
+\Require Initial design $\boldsymbol{\rho}^{0,0}$; filter, projection (with continuation schedule), and MMA parameters; ALM parameters $\mu_0$, $\gamma_\mu$, $\mu_{\max}$, $\lambda_{\max}$; criterion set $\mathcal{E}_{\mathrm{acc}}$; stopping parameters $\delta_\rho$, $\delta_g$, $N_{\mathrm{hold}}$, $N_{\mathrm{out}}^{\max}$, $N_{\mathrm{in}}^{\max}$.
+\Ensure Final design $\boldsymbol{\rho}^*$ with its physical density $\bar{\boldsymbol{\rho}}$, stress field $\boldsymbol{\sigma}_h$, volume fraction $f_V$, and maximum local constraint values $g_{\max}$ and $g_{\max,\mathrm{all}}$.
+\State Set $k = 0$, $q = 0$, $\lambda_e^{(0)} = 0$, $\mu_e^{(0)} = \mu_0$; initialize the projection parameter $\beta$ and the MMA asymptotes and design history.
+\State Filter and project $\boldsymbol{\rho}^{0,0}$; solve the state equations; compute $f_V$ and $g_e$.
+\While{$q < N_{\mathrm{hold}}$ and $k < N_{\mathrm{out}}^{\max}$}
+\State Store $\boldsymbol{\rho}^{k,0}$; fix $\boldsymbol{\lambda}^{(k)}$, $\boldsymbol{\mu}^{(k)}$, $\beta$; compute $\mathcal{L}^{(k)}$; set $j = 0$.
+\While{$j < N_{\mathrm{in}}^{\max}$}
+\State Solve the adjoint equations; compute $\mathrm{d}\mathcal{L}^{(k)}/\mathrm{d}\rho_e$ through the filter and projection chain rule.
+\State Update $\boldsymbol{\rho}^{k,j+1}$ by MMA within the design bounds and the move limit.
+\State Filter and project; solve the state equations; compute $f_V$, $g_e$, $\mathcal{L}^{(k)}$; set $j \leftarrow j + 1$.
+\EndWhile
+\State Set $\boldsymbol{\rho}^{k+1,0} = \boldsymbol{\rho}^{k,j}$; compute $g_{\max}^{k+1}$ and $\Delta_{\rho,\mathrm{out}}^{k+1}$.
+\State If the continuation is complete, the projection was unchanged in this outer step, $g_{\max}^{k+1} \le \delta_g$, and $\Delta_{\rho,\mathrm{out}}^{k+1} < \delta_\rho$, set $q \leftarrow q + 1$; otherwise set $q = 0$.
+\State If $q = N_{\mathrm{hold}}$ or $k + 1 = N_{\mathrm{out}}^{\max}$, set $k \leftarrow k + 1$ and exit; otherwise update and truncate $\lambda_e^{(k+1)}$ by~\eqref{eq:multiplier_update}, set $\mu_e^{(k+1)} = \min(\gamma_\mu \mu_e^{(k)}, \mu_{\max})$, $k \leftarrow k + 1$.
+\State Update the projection parameters by the schedule; if changed, recompute the physical density, state, and constraints, and reset the MMA history and $q$.
+\EndWhile
+\State \Return $\boldsymbol{\rho}^* = \boldsymbol{\rho}^{k,0}$; re-solve the state equations; report $f_V$, $g_{\max}$, and $g_{\max,\mathrm{all}}$.
+\end{algorithmic}
+\end{algorithm}
+
+The outer ALM loop updates the multipliers by~\eqref{eq:multiplier_update}, and the penalty factors grow by the factor $\gamma_\mu$ and are capped at $\mu_{\max}$ as in step 12 of Algorithm~\ref{alg:stress_alm_mma}; since all elements start from the same penalty factor and are updated simultaneously, $\mu_e^{(k)}$ takes the same value for all $e$, and neither the multipliers nor the penalty factors are reset when the projection parameters change. The inner loop approximately solves the augmented subproblem by MMA with a fixed number of $N_{\mathrm{in}}^{\max}$ steps. In step 10, the maximum local constraint value on the criterion set and the mean design change between the beginning and the end of the outer step are defined as
+\begin{equation*}
+g_{\max}^{k+1} = \max_{e \in \mathcal{E}_{\mathrm{acc}}} g_e,
+\qquad
+\Delta_{\rho,\mathrm{out}}^{k+1} = \frac{1}{N_e} \sum_{e=1}^{N_e} \bigl| \rho_e^{k+1,0} - \rho_e^{k,0} \bigr|,
+\end{equation*}
+where the latter follows the form of Giraldo-Londoño and Paulino~\cite{GiraldoLondono2021}; $g_{\max}$ is the signed maximum local constraint value, $g_{\max,\mathrm{all}} = \max_{1 \le e \le N_e} g_e$ in step 15 is taken over all elements, and all local constraints are strictly satisfied when $g_{\max,\mathrm{all}} < 0$.

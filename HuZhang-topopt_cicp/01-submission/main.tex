@@ -17,19 +17,28 @@
 \usepackage{float}
 \usepackage{bm}
 
-\renewcommand{\lstlistingname}{Code}
+% Float placement: discourage float pages for half-page figures
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.5}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
+
 \renewcommand{\thealgorithm}{\arabic{section}.\arabic{algorithm}}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
 
 \captionsetup[figure]{font=rm}
 
 \begin{document}
 \title[Arbitrary-Order Hu--Zhang Elements for Topology Optimization]{Arbitrary-Order Hu--Zhang Mixed Finite Element Methods for Density-Based Topology Optimization}
 
-\author[He L, Chen C Y, Wei H Y]{Liang He\affil{1}, Chunyu Chen\affil{2}\comma\corrauth, Huayi Wei\affil{2}}
+\author[He L, Chen C Y, Wei H Y]{Liang He\affil{1}, Chunyu Chen\affil{2}, Huayi Wei\affil{3}}
 \address{
 \affilnum{1}\ 
-School of Mathematical Sciences, Dalian University of Technology, Dalian 116024, China\\
+School of Mechanics and Aerospace Engineering, Dalian University of Technology, Dalian 116024, China\\
 \affilnum{2}\ 
+School of Mathematical Sciences, Peking University, Beijing 100871, China\\
+\affilnum{3}\ 
 School of Mathematics and Computational Science, Xiangtan University; 
 National Center of Applied Mathematics in Hunan, Hunan Key Laboratory for 
 Computation and Simulation in Science and Engineering, Xiangtan 411105, China
@@ -37,18 +46,25 @@ Computation and Simulation in Science and Engineering, Xiangtan 411105, China
 
 \emails{
 	{\tt heliang@dlut.edu.cn} (L.~He),
-	{\tt chunyuchen@xtu.edu.cn} (C.~Chen),
+	{\tt cbtxs@math.pku.edu.cn} (C.~Chen),
 	{\tt weihuayi@xtu.edu.cn} (H.~Wei)
 }
 
 \begin{abstract}
-To overcome the inter-element traction discontinuity in stresses recovered from displacement elements and the volumetric locking of low-order displacement elements in nearly incompressible regimes, this paper establishes an arbitrary-order Hu--Zhang mixed finite element framework for density-based topology optimization on simplicial meshes, using symmetric stress and displacement as independent unknowns. Combining jump stabilization for lower polynomial orders with local corner relaxation, we formulate models for compliance minimization and volume minimization subject to local stress constraints, derive consistent adjoint sensitivities incorporating the design dependence of the right-hand side introduced by traction lifting, and implement the framework within FEALPy. Two-dimensional numerical examples show that both native higher-order and low-order stabilized formulations achieve their theoretically expected convergence rates, and the unified optimization workflow is applicable across all investigated discrete polynomial degrees. In standard compliance optimization, the mixed and displacement methods yield comparable topologies and compliance values; in nearly incompressible regimes, the mixed method achieves designs with lower compliance than linear displacement elements, whereas increasing the displacement polynomial degree narrows this gap. Local stress constraints are evaluated directly from the primary stress variables without stress recovery, with the discrete stress naturally preserving inter-element normal traction continuity.
+In density-based topology optimization, displacement-based finite elements recover stresses from displacement gradients but generally do not guarantee inter-element traction continuity. Low-order displacement elements are prone to volumetric locking in nearly incompressible regimes. To address these issues, this paper develops an arbitrary-order Hu--Zhang mixed finite element framework for density-based topology optimization on simplicial meshes. The framework treats symmetric stress and displacement as independent unknowns. Combining jump stabilization for lower polynomial orders with local corner relaxation, we formulate two optimization models: compliance minimization and volume minimization subject to local stress constraints. We derive consistent adjoint sensitivities that account for the design dependence of the right-hand side introduced by traction lifting. The proposed topology optimization framework is implemented in FEALPy. Two-dimensional numerical examples show that both native higher-order and low-order stabilized formulations exhibit convergence, and the unified optimization workflow is applicable across all investigated discrete polynomial degrees. In standard compliance optimization, the mixed and displacement-based methods yield comparable topologies and compliance values. Mesh convergence results for the fully solid bearing domain show that Hu--Zhang elements exhibit similar compliance convergence trends under compressible and nearly incompressible conditions, without the pronounced loss of accuracy observed for linear displacement elements. In nearly incompressible topology optimization, Hu--Zhang elements effectively mitigate the effects of volumetric locking on the optimization results. The resulting designs are comparable to those obtained with quadratic displacement elements in both topology and compliance evaluated using a common discretization. Local stress constraints are evaluated directly from the primary stress variables without stress recovery, with the discrete stress naturally preserving inter-element normal traction continuity.
 \end{abstract}
 
 \ams{65N30, 74S05, 74P05, 74B05}
-\keywords{Hu--Zhang Mixed Finite Element, Density-Based Topology Optimization, Hellinger--Reissner Principle, Nearly Incompressible Elasticity, Local Stress Constraint}
+\keywords{Hu--Zhang mixed finite elements, arbitrary-order approximation, density-based topology optimization, nearly incompressible elasticity, local stress constraints}
 
 \maketitle
+% Display author emails without designating a corresponding author.
+\begingroup
+\renewcommand{\thefootnote}{}
+\makeatletter
+\footnotetext{\@setemails}
+\makeatother
+\endgroup
 
 \input{sections/sec01_introduction.tex}
 \input{sections/sec02_preliminaries.tex}
@@ -57,11 +73,7 @@ To overcome the inter-element traction discontinuity in stresses recovered from 
 \input{sections/sec05_numerical_results.tex}
 \input{sections/sec06_conclusions.tex}
 
-\appendix
-\input{sections/appendix.tex}
-
 \section*{Acknowledgments}
-The author gratefully acknowledges the support of the National Natural Science Foundation of China.
 
 \bibliographystyle{abbrv}
 \bibliography{references}

@@ -1,76 +1,236 @@
-\section{Arbitrary-Order Hu--Zhang Elements}
+\section{Arbitrary-Order Hu--Zhang Mixed Finite Elements}
 \label{sec:huzhang_elements}
 
 \subsection{Geometric Tangential--Normal Decomposition on Simplices}
 \label{subsec:geometric_decomposition}
 
-On a $d$-dimensional simplex $T \in \mathcal{T}_h$, let $\lambda_0, \ldots, \lambda_d$ denote the standard barycentric coordinates associated with vertices $\boldsymbol{x}_0, \ldots, \boldsymbol{x}_d$. For any face $F_i$ opposite to vertex $\boldsymbol{x}_i$, the outward unit normal is $\boldsymbol{n}_i = -\nabla\lambda_i / \|\nabla\lambda_i\|$.
+Let $T \in \mathcal{T}_h$ be a $d$-dimensional simplex (a triangle in 2D or a tetrahedron in 3D). Let $\mathbb{P}_k(T;\mathbb{S}) = \mathbb{P}_k(T)\otimes\mathbb{S}$ denote the local symmetric tensor-valued polynomial space of degree at most $k$ ($k \ge 1$) on $T$, whose dimension is $\dim \mathbb{P}_k(T;\mathbb{S}) = \frac{d(d+1)}{2}\binom{k+d}{d}$.
 
-Following Hu and Zhang~\cite{HuZhang2014}, the space of polynomial symmetric tensors $\mathbb{P}_k(T;\mathbb{S})$ can be characterized via a geometric entity decomposition into vertex, edge, face, and interior modes:
+Hu and Zhang~\cite{HuZhang2014} first constructed symmetric $H(\operatorname{div})$-conforming mixed finite elements on triangular meshes in two dimensions, which was subsequently generalized to arbitrary dimensions and higher-order cases on simplicial meshes by Hu~\cite{Hu2015}. To systematically organize the stress basis functions and their degrees of freedom (DOFs), we adopt a geometric description that partitions the symmetric tensor components into tangential and normal parts on each sub-simplex. Similar concepts regarding geometric decomposition, local frames, and DOF management can be found in Chen et al.~\cite{Chen2024} for high-order face and edge elements; below, we extend the geometric decomposition based on tangential--normal frames from vector fields to symmetric tensors.
+
+Let $f$ be an $\ell$-dimensional sub-simplex of $T$ ($\ell = 0, 1, \dots, d$). Let $\{\boldsymbol{t}_i^f\}_{i=1}^{\ell}$ be an orthogonal basis for its tangent space, and let $\{\boldsymbol{n}_j^f\}_{j=1}^{d-\ell}$ be an orthogonal basis for its normal space. Based on this frame, we decompose the symmetric tensor space into a tangential subspace $\mathbb{T}_f(\mathbb{S})$ and a normal subspace $\mathbb{N}_f(\mathbb{S})$:
 \begin{equation}
-\mathbb{P}_k(T;\mathbb{S}) = \bigoplus_{\ell=0}^d \bigoplus_{e \in \Delta_\ell(T)} \mathcal{B}_{k,e}(T),
+\label{eq:decomp_tangential_normal}
+\begin{aligned}
+\mathbb{T}_f(\mathbb{S}) &= \operatorname{span} \left\{ \operatorname{sym}(\boldsymbol{t}_i^f \otimes \boldsymbol{t}_j^f) \right\}_{1 \le i \le j \le \ell}, \\
+\mathbb{N}_f(\mathbb{S}) &= \operatorname{span} \left\{ \operatorname{sym}(\boldsymbol{t}_i^f \otimes \boldsymbol{n}_j^f) \right\}_{1 \le i \le \ell,\, 1 \le j \le d-\ell}
+\oplus \operatorname{span} \left\{ \operatorname{sym}(\boldsymbol{n}_i^f \otimes \boldsymbol{n}_j^f) \right\}_{1 \le i \le j \le d-\ell},
+\end{aligned}
 \end{equation}
-where $\Delta_\ell(T)$ denotes the set of $\ell$-dimensional sub-simplices of $T$. On each sub-simplex $e$, polynomial tensor modes are split into normal and tangential components with respect to adjacent faces. Specifically, for any inter-element interface $F = T^+ \cap T^-$, normal trace continuity requires:
-\begin{equation}
-\boldsymbol{\tau}|_{T^+} \boldsymbol{n}_F = \boldsymbol{\tau}|_{T^-} \boldsymbol{n}_F \quad \text{on } F.
-\end{equation}
+where the symmetric tensor product is defined by $\operatorname{sym}(\boldsymbol{a} \otimes \boldsymbol{b}) = \frac{1}{2}(\boldsymbol{a} \otimes \boldsymbol{b} + \boldsymbol{b} \otimes \boldsymbol{a})$. With respect to the tensor double contraction defined in Section~\ref{subsec:notation}, the symmetric tensor space $\mathbb{S}$ admits the following orthogonal direct sum decomposition:
+\[
+\mathbb{S} = \mathbb{T}_f(\mathbb{S}) \oplus \mathbb{N}_f(\mathbb{S}).
+\]
+By convention, the span over an empty index set is $\{0\}$. When $\ell = d$, $f = T$, and its normal space is $\{0\}$, which implies $\mathbb{T}_T(\mathbb{S}) = \mathbb{S}$ and $\mathbb{N}_T(\mathbb{S}) = \{0\}$.
+
+$H(\operatorname{div})$ conformity requires that the normal trace of the stress tensor be continuous across the common interface of adjacent elements. In the geometric entity-based construction adopted in this work prior to corner relaxation, the degrees of freedom (DOFs) associated with $\mathbb{N}_f(\mathbb{S})$ are defined under a unified frame and globally shared among elements sharing the sub-simplex $f$; this is a constructive approach to achieving normal trace continuity, rather than an obligatory DOF-sharing rule for all conforming stress elements. The local adjustment at corner vertices is detailed in Section~\ref{subsec:corner_relaxation}.
+
+For any $\boldsymbol{\tau} \in \mathbb{T}_f(\mathbb{S})$ and any normal vector $\boldsymbol{n}$ of $f$, it holds that $\boldsymbol{\tau}\boldsymbol{n} = \boldsymbol{0}$. Consequently, although tangential tensor components may be non-zero on the boundary, they do not contribute to tractions along these normal directions. For any boundary face $F$ of element $T$ containing $f$, its outward unit normal $\boldsymbol{n}_F$ belongs to the normal space of $f$, and hence the normal trace of such a component on $F$ vanishes; on boundary faces not containing $f$, the scalar basis functions associated with the interior nodes of $f$ vanish identically. Therefore, the normal trace of these components vanishes across the entire boundary $\partial T$, meaning that the corresponding basis functions are $H(\operatorname{div})$ bubble functions on $T$. Their DOFs are thus not shared among elements sharing $f$, but are instead numbered locally within each individual element.
+
+Taking a two-dimensional triangular element as an example, the choice of local orthogonal frames and the partition of tensor basis elements on sub-simplices of each dimension are illustrated in Figure~\ref{fig:simplex_frame}:
+\begin{enumerate}
+\item When $\ell = 0$ (vertices): $\mathbb{T}_f(\mathbb{S}) = \{0\}$ and $\mathbb{N}_f(\mathbb{S}) = \mathbb{S}$. An arbitrary orthogonal frame can be selected to construct three independent point-value DOFs; for boundary vertices, the frame is aligned with the adjacent boundary edge to facilitate the direct imposition of traction boundary conditions (see Section~\ref{subsec:corner_relaxation} for corners);
+\item When $\ell = 1$ (edges): We choose a unit tangent vector $\boldsymbol{t}_e$ along the edge and a consistently chosen unit normal vector $\boldsymbol{n}_e$. The normal subspace $\mathbb{N}_e(\mathbb{S})$ consists of $\operatorname{sym}(\boldsymbol{t}_e \otimes \boldsymbol{n}_e)$ and $\operatorname{sym}(\boldsymbol{n}_e \otimes \boldsymbol{n}_e)$, which determine the normal traction trace components $\boldsymbol{\tau}\boldsymbol{n}_e$ at interior nodes of the edge and are shared across adjacent elements; the tangential subspace $\mathbb{T}_e(\mathbb{S})$ contains only $\operatorname{sym}(\boldsymbol{t}_e \otimes \boldsymbol{t}_e)$ and remains element-private;
+\item When $\ell = 2$ (element interior): $\mathbb{T}_T(\mathbb{S}) = \mathbb{S}$ and $\mathbb{N}_T(\mathbb{S}) = \{0\}$, where all interior DOFs are strictly element-private.
+\end{enumerate}
+
+A consistent orientation convention is adopted for the tangential and normal vectors of a shared edge between adjacent elements: reversing either $\boldsymbol{t}_e$ or $\boldsymbol{n}_e$ flips the sign of the coefficient corresponding to $\operatorname{sym}(\boldsymbol{t}_e \otimes \boldsymbol{n}_e)$, whereas the coefficient corresponding to $\operatorname{sym}(\boldsymbol{n}_e \otimes \boldsymbol{n}_e)$ remains invariant; therefore, shared DOFs must be defined in a unified frame. When evaluating the element traction associated with its outward normal, an appropriate sign is introduced according to the orientation of the element outward normal relative to the chosen edge normal. In Figure~\ref{fig:simplex_frame}, arrows denote the selected local frames (edge normals are not required to point outward from the illustrated element); red markers indicate components shared across adjacent elements, and black markers represent element-private components.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.55\textwidth]{figures/fig3_1_simplex_frame}
+\caption{Local orthogonal frames and symmetric tensor components on sub-simplices of a triangular element. Arrows indicate the selected local frame $(\boldsymbol{a}, \boldsymbol{b})$; \textcircled{1}, \textcircled{2}, and \textcircled{3} correspond to $\boldsymbol{a} \otimes \boldsymbol{a}$, $\operatorname{sym}(\boldsymbol{a} \otimes \boldsymbol{b})$, and $\boldsymbol{b} \otimes \boldsymbol{b}$, respectively (on an edge, these correspond to $\boldsymbol{n}_e \otimes \boldsymbol{n}_e$, $\operatorname{sym}(\boldsymbol{t}_e \otimes \boldsymbol{n}_e)$, and $\boldsymbol{t}_e \otimes \boldsymbol{t}_e$); red markers denote components shared across adjacent elements, and black markers represent element-private components.}
+\label{fig:simplex_frame}
+\end{figure}
+
 
 \subsection{Arbitrary-Order Spaces and Standard Discrete Formulation}
 \label{subsec:discrete_spaces}
 
-For an arbitrary integer polynomial order $k \ge 1$, the conforming Hu--Zhang finite element space for the symmetric stress tensor is defined globally as:
+Let the space of continuous piecewise symmetric tensor-valued polynomials and the space of element stress bubble functions be denoted respectively by
+\[
+\widetilde{\boldsymbol{\Sigma}}_h^k
+=\left\{\boldsymbol{\tau}_h\in H^1(\Omega;\mathbb{S}):\boldsymbol{\tau}_h|_T\in\mathbb P_k(T;\mathbb{S}),\ \forall T\in\mathcal T_h\right\},
+\]
+and
+\[
+\begin{aligned}
+\boldsymbol B_k(T)
+&=\left\{\boldsymbol{\tau}\in\mathbb P_k(T;\mathbb{S}):\boldsymbol{\tau}\boldsymbol n_T=\boldsymbol0\text{ on }\partial T\right\},\\
+\boldsymbol B_h^k
+&=\left\{\boldsymbol{\tau}_h\in H(\operatorname{div},\Omega;\mathbb{S}):\boldsymbol{\tau}_h|_T\in\boldsymbol B_k(T),\ \forall T\in\mathcal T_h\right\},
+\end{aligned}
+\]
+where $\boldsymbol n_T$ is the unit outward normal of $T$. The $k$-th order Hu--Zhang stress finite element space prior to corner relaxation is defined as~\cite{Hu2015,Chen2017}
+\[
+\boldsymbol{\Sigma}_h^k=\widetilde{\boldsymbol{\Sigma}}_h^k+\boldsymbol B_h^k.
+\]
+Since the normal trace of bubble functions vanishes on element boundaries, the space $\boldsymbol{\Sigma}_h^k$ preserves inter-element traction continuity and retains the entity DOF-sharing rules stipulated in Section~\ref{subsec:geometric_decomposition}; in particular, all stress components are single-valued at mesh vertices. A local relaxation of this constraint at two-dimensional corner vertices is introduced in Section~\ref{subsec:corner_relaxation}.
+
+The corresponding $(k-1)$-th order piecewise discontinuous displacement finite element space is defined by
+\[
+\boldsymbol{V}_h^{k-1} = \left\{ \boldsymbol{v}_h \in L^2(\Omega;\mathbb{R}^d) : \boldsymbol{v}_h|_T \in \mathbb{P}_{k-1}(T;\mathbb{R}^d), \ \forall\,T \in \mathcal{T}_h \right\}.
+\]
+Let $\boldsymbol{\Sigma}_{h,0}^k = \boldsymbol{\Sigma}_h^k \cap \boldsymbol{\Sigma}_0$ denote the homogeneous discrete stress test space. The discrete formulation based on the pair $\boldsymbol{\Sigma}_h^k \times \boldsymbol{V}_h^{k-1}$ is hereafter referred to as the Hu--Zhang mixed finite element method (HZMFEM). Under standard linear elasticity discretization, the discrete mixed variational problem reads: find $(\boldsymbol{\sigma}_{0,h}, \boldsymbol{u}_h) \in \boldsymbol{\Sigma}_{h,0}^k \times \boldsymbol{V}_h^{k-1}$ such that
 \begin{equation}
-\boldsymbol{\Sigma}_{k,h} = \left\{ \boldsymbol{\tau}_h \in H(\operatorname{div},\Omega;\mathbb{S}) : \boldsymbol{\tau}_h|_T \in \mathbb{P}_k(T;\mathbb{S}), \;\forall\,T\in\mathcal{T}_h \right\}.
+\label{eq:discrete_mixed_formulation}
+\begin{aligned}
+a(\boldsymbol{\sigma}_{0,h}, \boldsymbol{\tau}_h) + b(\boldsymbol{\tau}_h, \boldsymbol{u}_h) &= \langle \boldsymbol{u}_D, \boldsymbol{\tau}_h\boldsymbol{n} \rangle_{\Gamma_D} - a(\boldsymbol{\sigma}_{g,h}, \boldsymbol{\tau}_h), && \forall\,\boldsymbol{\tau}_h \in \boldsymbol{\Sigma}_{h,0}^k, \\
+b(\boldsymbol{\sigma}_{0,h}, \boldsymbol{v}_h) &= -(\boldsymbol{b},\boldsymbol{v}_h)_\Omega - b(\boldsymbol{\sigma}_{g,h}, \boldsymbol{v}_h), && \forall\,\boldsymbol{v}_h \in \boldsymbol{V}_h^{k-1}.
+\end{aligned}
 \end{equation}
-The homogeneous subspace conforming to the traction-free boundary conditions is denoted by $\boldsymbol{\Sigma}_{k,h}^0 = \boldsymbol{\Sigma}_{k,h} \cap \boldsymbol{\Sigma}_0$.
-The corresponding discrete displacement space is chosen as the piecewise polynomial space of degree $(k-1)$:
+The discrete total stress is then given by $\boldsymbol{\sigma}_h = \boldsymbol{\sigma}_{0,h} + \boldsymbol{\sigma}_{g,h}$.
+
+
+According to the theoretical analysis by Hu~\cite{Hu2015} for the standard problem under pure homogeneous Dirichlet boundary conditions, the Hu--Zhang space pair satisfies the discrete inf-sup condition for high-order schemes with $k \ge d+1$ (i.e., $k \ge 3$ on two-dimensional triangular meshes) under appropriate spatial constructions and theoretical assumptions. Provided that the continuous exact solution possesses sufficient regularity ($\boldsymbol{\sigma} \in H^{k+1}(\Omega;\mathbb{S})$ and $\boldsymbol{u} \in H^k(\Omega;\mathbb{R}^d)$), the discrete solution to the corresponding standard problem admits the following optimal-order a priori error estimate:
 \begin{equation}
-\boldsymbol{V}_{k-1,h} = \left\{ \boldsymbol{v}_h \in L^2(\Omega;\mathbb{R}^d) : \boldsymbol{v}_h|_T \in \mathbb{P}_{k-1}(T;\mathbb{R}^d), \;\forall\,T\in\mathcal{T}_h \right\}.
+\label{eq:optimal_error_estimate_hdiv}
+\|\boldsymbol{\sigma} - \boldsymbol{\sigma}_h\|_{H(\operatorname{div})} + \|\boldsymbol{u} - \boldsymbol{u}_h\|_0 \le C h^k \left( \|\boldsymbol{\sigma}\|_{k+1} + \|\boldsymbol{u}\|_k \right).
+\end{equation}
+In addition, the stress satisfies an optimal-order convergence rate of $\mathcal{O}(h^{k+1})$ in the $L^2$ norm:
+\begin{equation}
+\label{eq:optimal_error_estimate_l2}
+\|\boldsymbol{\sigma} - \boldsymbol{\sigma}_h\|_0 \le C h^{k+1} \|\boldsymbol{\sigma}\|_{k+1}.
 \end{equation}
 
-For $k \ge d+1$, the pair $\boldsymbol{\Sigma}_{k,h}^0 \times \boldsymbol{V}_{k-1,h}$ satisfies the discrete inf-sup condition uniformly with respect to $h$, yielding optimal convergence:
-\begin{equation}
-\|\boldsymbol{\sigma} - \boldsymbol{\sigma}_h\|_{H(\operatorname{div})} + \|\boldsymbol{u} - \boldsymbol{u}_h\|_{0} \le C h^k \left( \|\boldsymbol{\sigma}\|_{k+1} + \|\boldsymbol{u}\|_k \right).
-\end{equation}
 
-\subsection{Jump Stabilization for Low-Order Elements ($1 \le k \le d$)}
+\subsection{Jump Stabilization for Low-Order Elements}
 \label{subsec:jump_stabilization}
 
-For low-order discretizations ($k=1$ in 2D and $k=1,2$ in 3D), the standard inf-sup condition fails on general simplicial meshes. To restore stability while preserving optimal convergence, we employ the symmetric matrix jump stabilization proposed by Chen et al.~\cite{Chen2017}. 
-
-For any internal face $F \in \mathcal{F}_h^i$ shared by elements $T^+$ and $T^-$, let $\llbracket \boldsymbol{\tau}_h \rrbracket = \boldsymbol{\tau}_h|_{T^+} - \boldsymbol{\tau}_h|_{T^-}$ be the tensor jump across $F$. The stabilized bilinear form $a_s(\cdot,\cdot)$ is defined on $\boldsymbol{\Sigma}_{k,h} \times \boldsymbol{\Sigma}_{k,h}$ as:
+For low-order discretizations with $1 \le k \le d$ (i.e., $k = 1, 2$ in two dimensions), the discrete inf-sup stability established for standard high-order space pairs is no longer directly applicable, necessitating stabilization of the discrete formulation. To this end, a stabilization mechanism based on symmetric matrix jumps across element faces is introduced on the discontinuous displacement field~\cite{Chen2017}. For an internal face $F = T^+ \cap T^- \in \mathcal{F}_h^i$ with unit normal vectors $\boldsymbol{n}^+$ and $\boldsymbol{n}^-$, respectively, the symmetric matrix jump of a displacement field $\boldsymbol{v}$ is defined by
 \begin{equation}
-\label{eq:stabilized_bilinear}
-a_s(\boldsymbol{\sigma}_h, \boldsymbol{\tau}_h) = a(\boldsymbol{\sigma}_h, \boldsymbol{\tau}_h) + \sum_{F \in \mathcal{F}_h^i} \gamma_0 h_F \int_F \llbracket \boldsymbol{\sigma}_h \rrbracket : \llbracket \boldsymbol{\tau}_h \rrbracket \,\mathrm{d}s,
+\label{eq:displacement_jump}
+\llbracket \boldsymbol{v} \rrbracket = \frac{1}{2}\left( \boldsymbol{v}^+\otimes\boldsymbol{n}^+ + \boldsymbol{n}^+\otimes\boldsymbol{v}^+ + \boldsymbol{v}^-\otimes\boldsymbol{n}^- + \boldsymbol{n}^-\otimes\boldsymbol{v}^- \right).
 \end{equation}
-where $\gamma_0 > 0$ is a dimensionless stabilization parameter (taken as $\gamma_0 = 1.0$ in our implementations). Since the exact solution $\boldsymbol{\sigma} \in H^1(\Omega;\mathbb{S})$ satisfies $\llbracket \boldsymbol{\sigma} \rrbracket = \boldsymbol{0}$, this jump stabilization is strongly consistent.
+The matrix-type jump stabilization term employed by Chen et al.~\cite{Chen2017} takes the form
+\begin{equation}
+\label{eq:matrix_jump_stabilization_chen}
+c_{\mathrm{mat},h}(\boldsymbol{u}_h,\boldsymbol{v}_h)
+=\sum_{F\in\mathcal{F}_h}h_F\int_F \llbracket \boldsymbol{u}_h \rrbracket : \llbracket \boldsymbol{v}_h \rrbracket \,\mathrm{d}s.
+\end{equation}
+While the summation in~\eqref{eq:matrix_jump_stabilization_chen} is taken over all faces corresponding to the pure displacement boundary conditions in~\cite{Chen2017}, for the mixed boundary conditions considered in this work, the faces involved in the penalty are taken as $\mathcal{F}_h^i \cup \mathcal{F}_h^D$. On the Dirichlet boundary $\Gamma_D$, the one-sided jump is defined as $\llbracket \boldsymbol{v} \rrbracket = \operatorname{sym}(\boldsymbol{v} \otimes \boldsymbol{n})$, and the penalty is applied to the displacement deviation $\boldsymbol{u}_h - \boldsymbol{u}_D$.
+
+When dimensional variables are involved, we further perform dimensional matching for the matrix-type jump term. Compared with the bilinear form $b(\cdot,\cdot)$ in the mixed variational formulation, the unscaled jump term carries an extra dimension of length squared while lacking the dimension of stress. Therefore, we utilize the shear modulus $\mu$ and a fixed macroscopic characteristic length $L_0$ to construct the scaling parameter $\alpha = \mu / L_0^2$, yielding
+\begin{equation}
+\label{eq:scaled_jump_stabilization}
+\alpha=\frac{\mu}{L_0^2},\qquad
+c_h(\boldsymbol{u}_h,\boldsymbol{v}_h)
+=\sum_{F\in\mathcal{F}_h^i\cup\mathcal{F}_h^D}\alpha h_F\int_F \llbracket \boldsymbol{u}_h \rrbracket : \llbracket \boldsymbol{v}_h \rrbracket \,\mathrm{d}s,
+\end{equation}
+where $\mu$ is taken as the shear modulus of the solid material, fixed at $E_0/[2(1+\nu_0)]$ throughout the TO process without being updated by material density interpolation; $L_0$ is chosen as the maximum edge length of the bounding box of the fixed domain mesh, namely $L_0 = \max_{1\le i\le d}(x_i^{\max} - x_i^{\min})$. Consequently, $\alpha$ is strictly design-independent, and the stabilization matrix generates no additional sensitivity terms under a fixed mesh and invariant boundary partition.
+
+The known boundary functional corresponding to non-homogeneous Dirichlet boundary conditions adopts the identical scaling:
+\begin{equation}
+\label{eq:dirichlet_stabilization_rhs}
+\ell_h^D(\boldsymbol{v}_h)=\sum_{F\in\mathcal{F}_h^D}\alpha h_F\int_F \llbracket \boldsymbol{u}_D \rrbracket : \llbracket \boldsymbol{v}_h \rrbracket \,\mathrm{d}s.
+\end{equation}
+
+Incorporating the stabilization terms, the unified discrete mixed variational problem is formulated as follows: find $(\boldsymbol{\sigma}_{0,h}, \boldsymbol{u}_h) \in \boldsymbol{\Sigma}_{h,0}^k \times \boldsymbol{V}_h^{k-1}$ such that
+\begin{equation}
+\label{eq:unified_discrete_mixed_formulation}
+\begin{aligned}
+a(\boldsymbol{\sigma}_{0,h}, \boldsymbol{\tau}_h) + b(\boldsymbol{\tau}_h, \boldsymbol{u}_h) &= \langle \boldsymbol{u}_D, \boldsymbol{\tau}_h\boldsymbol{n} \rangle_{\Gamma_D} - a(\boldsymbol{\sigma}_{g,h}, \boldsymbol{\tau}_h), && \forall\,\boldsymbol{\tau}_h \in \boldsymbol{\Sigma}_{h,0}^k, \\
+b(\boldsymbol{\sigma}_{0,h}, \boldsymbol{v}_h) - c_h(\boldsymbol{u}_h, \boldsymbol{v}_h) &= -(\boldsymbol{b},\boldsymbol{v}_h)_\Omega - b(\boldsymbol{\sigma}_{g,h}, \boldsymbol{v}_h) - \ell_h^D(\boldsymbol{v}_h), && \forall\,\boldsymbol{v}_h \in \boldsymbol{V}_h^{k-1},
+\end{aligned}
+\end{equation}
+where the stabilization terms are activated for low-order discretizations with $1 \le k \le d$, while for high-order discretizations with $k \ge d+1$, one sets $c_h = 0$ and $\ell_h^D = 0$ so that~\eqref{eq:unified_discrete_mixed_formulation} naturally reduces to the standard mixed formulation~\eqref{eq:discrete_mixed_formulation}. In two dimensions, these two regimes correspond to $k = 1, 2$ and $k \ge 3$, respectively. In addition, the stabilization terms are imposed exclusively on interior faces and the Dirichlet boundary; the traction boundary condition on $\Gamma_N$ is enforced through the stress normal trace in the variational formulation, and thus no displacement jump penalty is introduced on $\Gamma_N$.
+
+Regarding theoretical error estimates for the low-order stabilized formulation, Chen et al.~\cite{Chen2017} established the discrete inf-sup condition for the original stabilized scheme ($1 \le k \le d$) under pure Dirichlet boundary conditions. Provided that the exact solution possesses sufficient regularity ($\boldsymbol{\sigma} \in H^{k+1}(\Omega;\mathbb{S})$ and $\boldsymbol{u} \in H^k(\Omega;\mathbb{R}^d)$), the discrete solution satisfies the a priori error estimate:
+\begin{equation}
+\label{eq:stabilized_error_estimate}
+\|\boldsymbol{\sigma} - \boldsymbol{\sigma}_h\|_{H(\operatorname{div},A)} + \|\boldsymbol{u} - \boldsymbol{u}_h\|_{0,c} \le C h^k \left( \|\boldsymbol{\sigma}\|_{k+1} + \|\boldsymbol{u}\|_k \right),
+\end{equation}
+where the compliance-weighted stress norm is defined by $\|\boldsymbol{\tau}\|_{H(\operatorname{div},A)}^2 = a(\boldsymbol{\tau},\boldsymbol{\tau}) + \|\operatorname{div}\boldsymbol{\tau}\|_0^2$, and the mesh-dependent displacement norm is defined by $\|\boldsymbol{v}\|_{0,c}^2 = \|\boldsymbol{v}\|_0^2 + c_{\mathrm{mat},h}(\boldsymbol{v},\boldsymbol{v})$. Under the mean trace elimination condition $\int_\Omega \operatorname{tr}\boldsymbol{\tau}\,\mathrm{d}x = 0$, this weighted norm is uniformly equivalent to the standard $H(\operatorname{div})$ norm with respect to the Lam\'e parameter $\lambda$. The theoretical stress error estimate in the $L^2$ norm for this low-order scheme is of order $\mathcal{O}(h^k)$, which is one order lower than the optimal estimate for the standard high-order formulation.
+
+
 
 \subsection{Partial Relaxation of Vertex Continuity at Corners}
 \label{subsec:corner_relaxation}
 
-At boundary vertices where boundary conditions abruptly switch (e.g., from Dirichlet to Neumann, or between non-collinear traction faces), strong $C^0$ tensor continuity at the vertex can cause severe artificial over-constraints (locking of stress tractions)~\cite{HuMa2021}. 
+At a corner vertex $x_c$ of a two-dimensional polygonal domain, let $e_+$ and $e_-$ denote two adjacent traction boundary edges meeting at $x_c$, with unit outward normal vectors $\boldsymbol{n}_+$ and $\boldsymbol{n}_-$, and prescribed tractions $\boldsymbol{g}_+$ and $\boldsymbol{g}_-$, respectively. If the stress at the corner is represented by a single symmetric tensor, it must satisfy the compatibility condition $\boldsymbol{n}_- \cdot \boldsymbol{g}_+(x_c) = \boldsymbol{n}_+ \cdot \boldsymbol{g}_-(x_c)$. When the prescribed boundary data do not satisfy this compatibility condition, the constraint of a single-valued stress tensor at the vertex impedes the accurate enforcement of traction boundary conditions on both sides~\cite{HuMa2021}.
 
-Following Hu and Ma~\cite{HuMa2021}, we adopt a two-element local vertex relaxation technique:
-for any corner vertex $\boldsymbol{x}_V \in \partial\Omega$ with discontinuity in normal directions or boundary condition types, the global tensor degrees of freedom associated with $\boldsymbol{x}_V$ are decoupled between adjacent boundary sub-domains. This partial relaxation eliminates non-physical stress singularities and restores the optimal convergence rates.
+To resolve this discrete constraint conflict, we adopt the partial relaxation of vertex continuity technique~\cite{HuMa2021}. In the following, we restrict the discussion to the two-element corner configuration in two dimensions: the neighborhood of the corner consists of two triangular elements $T^+$ and $T^-$, whose common edge $e$ connects the corner vertex to the interior of the domain; if the corner initially belongs to only a single triangle, that triangle can be subdivided into two triangles beforehand. While preserving the continuity of the normal trace across the common edge $e$, the pure tangential stress components of the adjacent elements relative to $e$ are decoupled. Letting $\mathcal{V}_c$ denote the set of corner vertices subjected to this relaxation, the corresponding relaxed discrete stress space is defined as
+\begin{equation}
+\label{eq:relaxed_stress_space}
+\begin{aligned}
+\boldsymbol{\Sigma}_{h,\mathrm{rel}}^k=\bigl\{
+&\boldsymbol{\tau}_h\in H(\operatorname{div},\Omega;\mathbb{S}):
+\ \boldsymbol{\tau}_h|_T\in\mathbb{P}_k(T;\mathbb{S}),
+\quad\forall T\in\mathcal{T}_h,\\
+&\boldsymbol{\tau}_h\text{ is single-valued at each vertex in }\mathcal{V}_h\setminus\mathcal{V}_c
+\bigr\}.
+\end{aligned}
+\end{equation}
 
-\subsection{Discrete Saddle-Point System and Matrix Reuse}
+For the two-element configuration described above, the two traction components in the frame of the common edge remain shared, while the pure tangential stress components are decoupled across the two sides, thereby increasing the number of global independent degrees of freedom at the corner from 3 to 4. The detailed implementation procedure is illustrated in Figure~\ref{fig:vertex_relaxation}:
+\begin{enumerate}
+\item \emph{Common edge frame}: Choose a unified orthonormal frame comprising the unit tangential vector $\boldsymbol{t}_e$ and normal vector $\boldsymbol{n}_e$ for the common edge $e$;
+\item \emph{Tangential component splitting}: Split the vertex degree of freedom corresponding to $\boldsymbol{t}_e \otimes \boldsymbol{t}_e$ into two independent degrees of freedom belonging to $T^+$ and $T^-$, respectively;
+\item \emph{Normal trace preservation}: Keep the components corresponding to $\boldsymbol{n}_e \otimes \boldsymbol{n}_e$ and $\operatorname{sym}(\boldsymbol{t}_e \otimes \boldsymbol{n}_e)$ shared between $T^+$ and $T^-$, while the remaining normal trace degrees of freedom on the common edge are assembled according to standard rules;
+\item \emph{Boundary condition enforcement}: Through a local $4 \times 4$ basis transformation at the corner, transform the four degrees of freedom into two traction components on each of the two boundary edges $e_+$ and $e_-$ (corresponding to the corner basis functions of Hu and Ma~\cite{HuMa2021}), thereby allowing traction conditions to be applied directly edge by edge; this transformation is invertible whenever $e_+$ and $e_-$ are not collinear. We emphasize that this procedure only increases the number of global independent degrees of freedom in the corner neighborhood, without altering the local polynomial space on each triangle.
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig3_2_vertex_relaxation}
+\caption{Partial relaxation of vertex stress continuity at a two-dimensional corner: (a) single-element configuration; (b) subdivision into two triangles sharing edge $e$; (c) independent tangential degrees of freedom (solid dots) and shared normal-trace degrees of freedom (open circles); (d) boundary traction representation after a local basis transformation. Arrows indicate the outward unit normals $\boldsymbol{n}_\pm$. The gap in (c) is schematic only.}
+\label{fig:vertex_relaxation}
+\end{figure}
+
+For any polynomial degree $k \ge 1$, the local symmetric stress space on a two-dimensional triangle has dimension
+\[
+\dim \mathbb{P}_k(T;\mathbb{S}) = \frac{3(k+1)(k+2)}{2}.
+\]
+The degrees of freedom are grouped by geometric entity as follows:
+\begin{itemize}
+\item \emph{Vertex DOFs}: each element is assigned 3 local components at each vertex; components at unrelaxed vertices are shared globally, whereas the aforementioned two-element relaxed corner contributes a total of 4 global independent degrees of freedom;
+\item \emph{Edge interior DOFs}: each edge is assigned $2(k-1)$ normal traction degrees of freedom (shared across adjacent elements) and $(k-1)$ tangential normal stress degrees of freedom (strictly element-private);
+\item \emph{Element interior DOFs}: each element contains $\frac{3(k-1)(k-2)}{2}$ internal stress degrees of freedom, which are strictly element-private.
+\end{itemize}
+
+In two dimensions, all subsequent discrete variational problems and algebraic matrix assemblies adopt the relaxed stress space constructed above. For notational simplicity, we continue to denote this relaxed space by $\boldsymbol{\Sigma}_h^k$, and the corresponding discrete stress space satisfying homogeneous traction boundary conditions by $\boldsymbol{\Sigma}_{h,0}^k = \boldsymbol{\Sigma}_h^k \cap \boldsymbol{\Sigma}_0$.
+
+\subsection{Discrete Saddle-Point System}
 \label{subsec:saddle_point_system}
 
-Let $\{\boldsymbol{\phi}_i\}_{i=1}^{N_\sigma}$ and $\{\boldsymbol{\psi}_j\}_{j=1}^{N_u}$ denote the basis functions of $\boldsymbol{\Sigma}_{k,h}^0$ and $\boldsymbol{V}_{k-1,h}$, respectively. The algebraic saddle-point system takes the form:
+Let $\{\boldsymbol{\Phi}_i\}_{i=1}^{N_\sigma}$ denote the global basis functions of the homogeneous discrete stress space $\boldsymbol{\Sigma}_{h,0}^k$, and let $\{\boldsymbol{\psi}_p\}_{p=1}^{N_u}$ denote the global basis functions of the piecewise discontinuous displacement space $\boldsymbol{V}_h^{k-1}$. The discrete solutions are expanded as
+\[
+\boldsymbol{\sigma}_{0,h} = \sum_{j=1}^{N_\sigma} s_{0,j} \boldsymbol{\Phi}_j, \qquad \boldsymbol{u}_h = \sum_{q=1}^{N_u} u_q \boldsymbol{\psi}_q.
+\]
+Substituting these basis expansions into the unified discrete mixed formulation~\eqref{eq:unified_discrete_mixed_formulation} leads to the following symmetric indefinite discrete saddle-point algebraic system:
 \begin{equation}
 \label{eq:matrix_saddle_point}
 \begin{bmatrix}
-\mathbf{A}(\boldsymbol{\rho}) & \mathbf{B}^{\mathsf T} \\
-\mathbf{B} & \mathbf{0}
+\boldsymbol{A} & \boldsymbol{B} \\
+\boldsymbol{B}^{\mathsf T} & -\boldsymbol{C}
 \end{bmatrix}
 \begin{bmatrix}
-\mathbf{U}_\sigma \\
-\mathbf{U}_u
+\boldsymbol{s}_0 \\
+\boldsymbol{u}
 \end{bmatrix}
 =
 \begin{bmatrix}
-\mathbf{F}_\sigma(\boldsymbol{\rho}) \\
-\mathbf{F}_u
+\boldsymbol{f}_{\sigma} \\
+\boldsymbol{f}_u
 \end{bmatrix},
 \end{equation}
-where $\mathbf{A}(\boldsymbol{\rho})_{ij} = a_s(\boldsymbol{\phi}_j, \boldsymbol{\phi}_i; \boldsymbol{\rho})$ depends on the design density vector $\boldsymbol{\rho}$, while the divergence coupling matrix $\mathbf{B}_{ji} = b(\boldsymbol{\phi}_i, \boldsymbol{\psi}_j) = \int_\Omega (\operatorname{div}\boldsymbol{\phi}_i) \cdot \boldsymbol{\psi}_j \,\mathrm{d}x$ is purely geometric and strictly design-independent. Consequently, in iterative topology optimization, $\mathbf{B}$ is assembled only once during initialization and reused across all subsequent optimization cycles.
+where the entries of each block matrix are explicitly given by:
+\begin{equation}
+\label{eq:saddle_blocks}
+\begin{aligned}
+A_{ij} &= a(\boldsymbol{\Phi}_j, \boldsymbol{\Phi}_i) = \int_\Omega \mathcal{A}\boldsymbol{\Phi}_j : \boldsymbol{\Phi}_i \,\mathrm{d}x, && i,j = 1, \dots, N_\sigma, \\
+B_{ip} &= b(\boldsymbol{\Phi}_i, \boldsymbol{\psi}_p) = \int_\Omega (\operatorname{div}\boldsymbol{\Phi}_i) \cdot \boldsymbol{\psi}_p \,\mathrm{d}x, && i = 1, \dots, N_\sigma; \ p = 1, \dots, N_u, \\
+C_{pq} &= c_h(\boldsymbol{\psi}_q, \boldsymbol{\psi}_p) = \sum_{F \in \mathcal{F}_h^i \cup \mathcal{F}_h^D} \alpha h_F \int_F \llbracket \boldsymbol{\psi}_q \rrbracket : \llbracket \boldsymbol{\psi}_p \rrbracket \,\mathrm{d}s, && p,q = 1, \dots, N_u.
+\end{aligned}
+\end{equation}
+
+The components of the right-hand side load vectors are defined by:
+\begin{equation}
+\label{eq:saddle_rhs}
+\begin{aligned}
+(\boldsymbol{f}_{\sigma})_i &= \int_{\Gamma_D} \boldsymbol{u}_D \cdot (\boldsymbol{\Phi}_i\boldsymbol{n})\,\mathrm{d}s - \int_\Omega \mathcal{A}\boldsymbol{\sigma}_{g,h} : \boldsymbol{\Phi}_i \,\mathrm{d}x, && i = 1, \dots, N_\sigma, \\
+(\boldsymbol{f}_u)_p &= -\int_\Omega \boldsymbol{b} \cdot \boldsymbol{\psi}_p \,\mathrm{d}x - \int_\Omega (\operatorname{div}\boldsymbol{\sigma}_{g,h}) \cdot \boldsymbol{\psi}_p \,\mathrm{d}x - \ell_h^D(\boldsymbol{\psi}_p), && p = 1, \dots, N_u,
+\end{aligned}
+\end{equation}
+where $\boldsymbol{s}_0 = (s_{0,1},\dots,s_{0,N_\sigma})^{\mathsf T}$ is the vector of unknown degrees of freedom for the homogeneous stress, and $\boldsymbol{u} = (u_1,\dots,u_{N_u})^{\mathsf T}$ is the displacement degree-of-freedom vector. Degrees of freedom at boundary vertices and boundary edges are defined with respect to local frames aligned with the boundary (with corner vertices treated as described in Section~\ref{subsec:corner_relaxation}), so that the normal stress trace on $\Gamma_N$ is directly represented by an identified subset of degrees of freedom. By interpolating the traction data $\boldsymbol{g}$ at $k+1$ equidistant Lagrange nodes on each traction boundary edge to obtain $\boldsymbol{g}_h$, assigning these values to the corresponding boundary degrees of freedom, and setting all remaining degrees of freedom to zero, one obtains the discrete lifting $\boldsymbol{\sigma}_{g,h} \in \boldsymbol{\Sigma}_h^k$ satisfying $\boldsymbol{\sigma}_{g,h}\boldsymbol{n} = \boldsymbol{g}_h$. Accordingly, among the global basis functions of the full space $\boldsymbol{\Sigma}_h^k$ determined by the degrees of freedom in Sections~\ref{subsec:geometric_decomposition} and~\ref{subsec:corner_relaxation}, eliminating those constrained degrees of freedom on $\Gamma_N$ directly yields the basis functions $\{\boldsymbol{\Phi}_i\}_{i=1}^{N_\sigma}$ for the homogeneous subspace $\boldsymbol{\Sigma}_{h,0}^k$.
+

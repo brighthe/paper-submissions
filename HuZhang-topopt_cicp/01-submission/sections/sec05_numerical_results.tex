@@ -1,35 +1,253 @@
 \section{Numerical Results}
 \label{sec:numerical_results}
 
-In this section, we present comprehensive numerical experiments to demonstrate the accuracy, stability, and versatility of the arbitrary-order Hu--Zhang mixed finite element method for topology optimization. All simulations are implemented within the open-source library FEALPy and the topology optimization platform SOPTX.
+In this section, we first verify the convergence of the discretizations of different orders through a manufactured solution, and then examine the performance of the proposed method in compliance minimization, nearly incompressible material design, and local stress-constrained problems through three classes of TO examples. All examples are implemented within the open-source finite element library FEALPy and the TO platform SOPTX.
 
 \subsection{Convergence Rate Verification via Manufactured Solutions}
 \label{subsec:manufactured_solutions}
 
-To verify the theoretical convergence rates of the arbitrary-order simplicial discretization and the jump stabilization, we consider a two-dimensional manufactured solution on the unit square domain $\Omega = (0, 1)^2$. The exact displacement field is chosen as:
-\begin{equation}
-\boldsymbol{u}(x, y) = 
+An isotropic plane-strain manufactured solution problem is constructed on the unit square $\Omega=(0,1)^2$ with Lam\'e parameters $\lambda=1$ and $\mu=0.5$. The exact displacement field is taken as
+\begin{equation*}
+\boldsymbol{u}(x,y) =
 \begin{bmatrix}
-\sin(2\pi x)\sin(2\pi y) + \frac{x^3}{3} \\
-\cos(2\pi x)\cos(2\pi y) + \frac{y^3}{3}
-\end{bmatrix}.
-\end{equation}
-The exact stress tensor is obtained via the isotropic Hooke's law $\boldsymbol{\sigma} = \mathcal{A}^{-1}\boldsymbol{\varepsilon}(\boldsymbol{u})$, with body force $\boldsymbol{b} = -\operatorname{div}\boldsymbol{\sigma}$. The domain is uniformly triangulated with mesh size $h$.
+\sin(\pi x)\sin(\pi y) \\
+\sin(\pi x)\sin(\pi y)
+\end{bmatrix},
+\end{equation*}
+the exact stress is given by $\boldsymbol{\sigma}=\mathcal{A}^{-1}\boldsymbol{\varepsilon}(\boldsymbol{u})$, and the body force is taken as $\boldsymbol{b}=-\operatorname{div}\boldsymbol{\sigma}$. Mixed boundary conditions are adopted: the exact displacement vanishes on $\Gamma_D=\{x=0\}\cup\{y=0\}$, where a homogeneous displacement condition is imposed, and the exact traction $\boldsymbol{g}=\boldsymbol{\sigma}\boldsymbol{n}$ is prescribed on $\Gamma_N=\{x=1\}\cup\{y=1\}$. The mesh is a uniform right-triangle partition obtained by dividing each coordinate direction into $n_x$ equal segments with diagonals alternating in a checkerboard pattern, so that each corner of the domain belongs to exactly two triangles; the two-element corner relaxation of Section~\ref{subsec:corner_relaxation} is activated at all four corners, keeping the same discrete setting as in the subsequent TO examples. Five refinement levels $n_x=4,8,16,32,64$ are considered, with maximum element diameter $h=\sqrt{2}/n_x$. In the tables, the total number of degrees of freedom is the sum of the stress and displacement degrees of freedom, and the observed convergence order is computed from the error ratio of two consecutive levels as $\log_2(e_h/e_{h/2})$.
 
-\subsubsection{Higher-Order Convergence ($k=3, 4$)}
-For higher-order discretizations without stabilization ($k=3$ and $k=4$), the mixed finite element pair $\boldsymbol{\Sigma}_{k,h} \times \boldsymbol{V}_{k-1,h}$ satisfies the inf-sup condition. The $L^2$ stress error $\|\boldsymbol{\sigma} - \boldsymbol{\sigma}_h\|_{0}$, $H(\operatorname{div})$ stress error $\|\boldsymbol{\sigma} - \boldsymbol{\sigma}_h\|_{H(\operatorname{div})}$, and $L^2$ displacement error $\|\boldsymbol{u} - \boldsymbol{u}_h\|_{0}$ exhibit optimal convergence orders $\mathcal{O}(h^{k+1})$, $\mathcal{O}(h^k)$, and $\mathcal{O}(h^k)$, respectively.
+\subsubsection{Higher-Order Convergence}
 
-\subsubsection{Lower-Order Stabilized Convergence ($k=1, 2$)}
-For lower-order discretizations ($k=1$ and $k=2$), jump stabilization~\eqref{eq:stabilized_bilinear} is activated with $\gamma_0 = 1.0$. The numerical results demonstrate that the jump stabilization restores full stability and achieves optimal asymptotic convergence rates without introducing adverse numerical damping.
+The high-order schemes ($k=3,4$) are solved without stabilization; the errors and observed convergence orders are listed in Table~\ref{tab:convergence_high_order}.
+
+\begin{table}[t]
+\centering
+\caption{Convergence errors and observed orders of the high-order Hu--Zhang mixed finite elements ($k=3,4$) for the manufactured solution.}
+\label{tab:convergence_high_order}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{ccccccccc}
+\toprule
+$k$ & $n_x$ & Total DOFs & $\|\boldsymbol{u}-\boldsymbol{u}_h\|_0$ & Order & $\|\boldsymbol{\sigma}-\boldsymbol{\sigma}_h\|_0$ & Order & $\|\boldsymbol{\sigma}-\boldsymbol{\sigma}_h\|_{H(\operatorname{div})}$ & Order \\
+\midrule
+3 & 4  & $975$     & $3.0644\times10^{-3}$ & --   & $4.0519\times10^{-3}$  & --   & $8.8146\times10^{-2}$ & --   \\
+  & 8  & $3\,767$   & $3.8850\times10^{-4}$ & 2.98 & $2.3422\times10^{-4}$  & 4.11 & $1.1180\times10^{-2}$ & 2.98 \\
+  & 16 & $14\,823$  & $4.8746\times10^{-5}$ & 2.99 & $1.4118\times10^{-5}$  & 4.05 & $1.4027\times10^{-3}$ & 2.99 \\
+  & 32 & $58\,823$  & $6.0991\times10^{-6}$ & 3.00 & $8.6802\times10^{-7}$  & 4.02 & $1.7550\times10^{-4}$ & 3.00 \\
+  & 64 & $234\,375$ & $7.6256\times10^{-7}$ & 3.00 & $5.3837\times10^{-8}$  & 4.01 & $2.1943\times10^{-5}$ & 3.00 \\
+\midrule
+4 & 4  & $1\,631$   & $2.6778\times10^{-4}$ & --   & $2.7107\times10^{-4}$  & --   & $7.7075\times10^{-3}$ & --   \\
+  & 8  & $6\,359$   & $1.6969\times10^{-5}$ & 3.98 & $8.9171\times10^{-6}$  & 4.93 & $4.8836\times10^{-4}$ & 3.98 \\
+  & 16 & $25\,127$  & $1.0643\times10^{-6}$ & 3.99 & $2.8610\times10^{-7}$  & 4.96 & $3.0627\times10^{-5}$ & 4.00 \\
+  & 32 & $99\,911$  & $6.6579\times10^{-8}$ & 4.00 & $9.0347\times10^{-9}$  & 4.98 & $1.9158\times10^{-6}$ & 4.00 \\
+  & 64 & $398\,471$ & $4.1621\times10^{-9}$ & 4.00 & $2.8345\times10^{-10}$ & 4.99 & $1.1976\times10^{-7}$ & 4.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:convergence_high_order} shows that, for $k=3$ and $k=4$, the observed convergence orders of the $L^2$ displacement error and the $H(\operatorname{div})$ stress error both approach $k$, while that of the $L^2$ stress error approaches $k+1$, in agreement with the optimal-order estimates~\eqref{eq:optimal_error_estimate_hdiv}--\eqref{eq:optimal_error_estimate_l2}. These estimates are established for the standard problem with pure displacement boundary conditions; the present example indicates that the optimal orders are preserved under mixed boundary conditions and corner relaxation.
+
+\subsubsection{Lower-Order Stabilized Convergence}
+
+The low-order schemes ($k=1,2$) employ the matrix jump stabilization~\eqref{eq:scaled_jump_stabilization} with coefficient $\alpha=\mu/L_0^2=0.5$ ($L_0=1$); the errors and observed convergence orders are listed in Table~\ref{tab:convergence_low_order}.
+
+\begin{table}[htbp]
+\centering
+\caption{Convergence errors and observed orders of the low-order jump-stabilized Hu--Zhang mixed finite elements ($k=1,2$) for the manufactured solution.}
+\label{tab:convergence_low_order}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{ccccccccc}
+\toprule
+$k$ & $n_x$ & Total DOFs & $\|\boldsymbol{u}-\boldsymbol{u}_h\|_0$ & Order & $\|\boldsymbol{\sigma}-\boldsymbol{\sigma}_h\|_0$ & Order & $\|\boldsymbol{\sigma}-\boldsymbol{\sigma}_h\|_{H(\operatorname{div})}$ & Order \\
+\midrule
+1 & 4  & $143$      & $4.3496\times10^{-1}$ & --   & $7.9802\times10^{-1}$ & --   & $5.4342\times10^{0}$  & --   \\
+  & 8  & $503$      & $2.5631\times10^{-1}$ & 0.76 & $2.5985\times10^{-1}$ & 1.62 & $2.7370\times10^{0}$  & 0.99 \\
+  & 16 & $1\,895$   & $1.2408\times10^{-1}$ & 1.05 & $8.8099\times10^{-2}$ & 1.56 & $1.3696\times10^{0}$  & 1.00 \\
+  & 32 & $7\,367$   & $6.0154\times10^{-2}$ & 1.04 & $3.0532\times10^{-2}$ & 1.53 & $6.8511\times10^{-1}$ & 1.00 \\
+  & 64 & $29\,063$  & $2.9637\times10^{-2}$ & 1.02 & $1.0721\times10^{-2}$ & 1.51 & $3.4265\times10^{-1}$ & 1.00 \\
+\midrule
+2 & 4  & $479$      & $2.7735\times10^{-2}$ & --   & $5.4679\times10^{-2}$ & --   & $7.9819\times10^{-1}$ & --   \\
+  & 8  & $1\,815$   & $7.0044\times10^{-3}$ & 1.99 & $7.4165\times10^{-3}$ & 2.88 & $2.0267\times10^{-1}$ & 1.98 \\
+  & 16 & $7\,079$   & $1.7574\times10^{-3}$ & 1.99 & $9.6884\times10^{-4}$ & 2.94 & $5.0875\times10^{-2}$ & 1.99 \\
+  & 32 & $27\,975$  & $4.3978\times10^{-4}$ & 2.00 & $1.2343\times10^{-4}$ & 2.97 & $1.2733\times10^{-2}$ & 2.00 \\
+  & 64 & $111\,239$ & $1.0997\times10^{-4}$ & 2.00 & $1.5545\times10^{-5}$ & 2.99 & $3.1843\times10^{-3}$ & 2.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+It can be observed from Table~\ref{tab:convergence_low_order} that, for $k=1$ and $k=2$, the observed convergence orders of the $L^2$ displacement error and the $H(\operatorname{div})$ stress error both approach $k$, numerically attaining the optimal order $\mathcal{O}(h^k)$ guaranteed by~\eqref{eq:stabilized_error_estimate}. Standard norms are used in the table: for fixed $\lambda$ the weighted stress norm is equivalent to the standard $H(\operatorname{div})$ norm, and on the displacement side $\|\boldsymbol{u}-\boldsymbol{u}_h\|_0\le\|\boldsymbol{u}-\boldsymbol{u}_h\|_{0,c}$, so the orders in~\eqref{eq:stabilized_error_estimate} apply directly. The observed order of the $L^2$ stress error is about 1.5 for $k=1$ and about 3 for $k=2$, both satisfying the $\mathcal{O}(h^k)$ estimate contained in~\eqref{eq:stabilized_error_estimate}; for $k=2$ the optimal interpolation order $k+1$ is attained, whereas for $k=1$ the order is higher than the theoretical one but remains suboptimal, consistent with the fact that the $L^2$ stress estimate in~\eqref{eq:stabilized_error_estimate} is itself suboptimal~\cite{Chen2017}. That analysis addresses the pure displacement boundary problem; the present example involves a traction boundary, the jump penalty is imposed only on interior faces and the displacement boundary, and the non-homogeneous traction data are enforced through the discrete lifting. The observed results indicate that the order conclusions remain valid in this setting. These results provide the numerical basis for the response analysis and the evaluation of stress-based objectives and constraints in the subsequent TO.
 
 \subsection{Benchmark Topology Optimization Cases}
 \label{subsec:benchmark_topopt}
 
-\subsubsection{Compliance Minimization of Clamped Beam}
-We consider a standard 2D clamped beam of dimensions $2.0 \times 1.0$ discretized by unstructured triangular meshes. We compare the compliance minimization designs obtained using the Hu--Zhang mixed elements ($k=1, 2, 3$) against standard displacement-based Lagrange elements (P1, P2, P3). In compressible regimes ($\nu = 0.3$), both formulations yield virtually identical topological layouts and objective values, confirming the mathematical consistency of the complementary energy formulation.
+In all examples, LFEM and HZMFEM share the same density mapping and material interpolation; the cases in which the Poisson ratio interpolation is activated are stated in Section~\ref{subsec:material_interpolation}. All HZMFEM runs activate the two-element corner relaxation of Section~\ref{subsec:corner_relaxation} at the four corners of the rectangular design domain. HZMFEM with $k=2$ uniformly uses the jump stabilization of Section~\ref{subsec:jump_stabilization} with a fixed coefficient, which is not updated with the density in either the optimization or the reanalysis. LFEM uses continuous Lagrange displacement approximations of degree $p$, solves $\boldsymbol{K}(\bar{\boldsymbol{\rho}})\boldsymbol{u}=\boldsymbol{f}$, and evaluates the compliance as the external work $\boldsymbol{f}^{\mathsf T}\boldsymbol{u}$; the local stress constraints are computed from the apparent stress defined in Section~\ref{subsec:stress_constraints}. The compliance of HZMFEM is evaluated as the complementary energy~\eqref{eq:compliance_obj}; it and the external work are two discrete approximations of the same continuous quantity, and their discrete values for the same design are in general not equal (Section~\ref{subsec:compliance_formulation}). Sections~\ref{subsubsec:clamped_beam} and~\ref{subsubsec:bearing} use the single-loop procedure of Algorithm~\ref{alg:compliance_single_loop} with MMA and OC updates, respectively, and Section~\ref{subsubsec:stress_cantilever} uses the ALM--MMA procedure of Algorithm~\ref{alg:stress_alm_mma}.
 
-\subsubsection{Nearly Incompressible Structural Optimization (2D Bearing)}
-To examine performance under the nearly incompressible limit, we investigate the classic 2D bearing benchmark with Poisson's ratio approaching $\nu \to 0.4999$. Standard displacement-based low-order elements suffer severe volumetric locking, generating non-physical checkerboard artifacts and spurious slender struts. In contrast, the arbitrary-order Hu--Zhang elements completely circumvent locking, generating smooth, physically sound load-carrying architectures.
+\subsubsection{Compliance Minimization of Clamped Beam}
+\label{subsubsec:clamped_beam}
+
+We consider the compliance minimization benchmark of a clamped beam (Figure~\ref{fig:clamped_beam_schematic}). The design domain measures $160\,\mathrm{mm}\times20\,\mathrm{mm}$ under plane stress, with material parameters $E_0=30\,\mathrm{MPa}$ and $\nu_0=0.4$ and volume fraction bound $\bar{V}=0.4$. Since HZMFEM imposes the traction condition as an essential condition on the normal trace of the stress (Section~\ref{subsec:traction_lifting}), a concentrated force cannot be applied directly. The point load $P=3\,\mathrm{N}$ at the midpoint of the bottom edge is therefore converted into an equivalent uniform traction of intensity $\bar{t}=P/l=3\,\mathrm{N/mm}$ over a contact zone of characteristic width $l=1\,\mathrm{mm}$, and is applied through a projection onto the continuous $\mathbb{P}_1$ boundary trace space. Both discretizations thus use the same load distribution and the same discrete traction data.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/compliance_beam/fig5_1_schematic}
+\caption{Geometry, loading and symmetry boundary conditions of the clamped beam: (a) full design domain; (b) left-half computational domain.}
+\label{fig:clamped_beam_schematic}
+\end{figure}
+
+Exploiting the symmetry of the geometry and the loading, the computations are carried out on the left half of the domain ($80\,\mathrm{mm}\times20\,\mathrm{mm}$), with the conditions $u_x=0$ and $\sigma_{xy}=0$ on the symmetry plane $x=80\,\mathrm{mm}$. LFEM imposes $u_x=0$ strongly on the horizontal displacement DOFs. In HZMFEM, $u_x=0$ is a natural condition, and $\sigma_{xy}=0$ is imposed strongly by setting the tangential component of the stress normal trace on this edge to zero while leaving the normal component free. The resultant load carried by the half domain is $P/2=1.5\,\mathrm{N}$; in what follows the compliance is reported for the full structure, i.e., twice the value computed on the half domain.
+
+The same uniform right-triangle partition with checkerboard-alternating diagonals as in Section~\ref{subsec:manufactured_solutions} is used with $80\times20$ cells ($N_e=3\,200$ elements on the half domain, equivalent to $6\,400$ elements on the full domain), and the density filter radius is $r_{\min}=2.4\,\mathrm{mm}$. Both discretizations use the MMA update of Algorithm~\ref{alg:compliance_single_loop}, starting from the uniform initial density $\rho_e^{(0)}=\bar{V}$, with move limit $m=0.2$, design-change tolerance $\varepsilon_\rho=10^{-2}$, bounds $0\le\rho_e\le1$, void modulus $E_{\min}=10^{-9}\,\mathrm{MPa}$ and penalization exponent $p_E=3$. LFEM is run with $p=2,3,4$ and HZMFEM with $k=2,3,4$, where $k=2$ uses the jump stabilization and $k=3,4$ the native high-order scheme. The final topologies are compared in Figure~\ref{fig:clamped_beam_topology} (mirrored to the full domain), and the convergence histories are shown in Figure~\ref{fig:clamped_beam_convergence}.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/compliance_beam/compliance_topology}
+\caption{Final topologies of the clamped beam obtained with MMA (left column: LFEM, $p$ is the displacement degree; right column: HZMFEM, $k$ is the stress degree).}
+\label{fig:clamped_beam_topology}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/compliance_beam/compliance_convergence}
+\caption{Optimization histories of the clamped beam with MMA (colored curves: full-structure compliance; gray curves: volume fraction; end markers: final compliance of each run, i.e., the optimized compliance in Table~\ref{tab:clamped_beam_reanalysis}; inset: zoom of the late iterations).}
+\label{fig:clamped_beam_convergence}
+\end{figure}
+
+Figure~\ref{fig:clamped_beam_topology} shows that both methods produce layouts whose main load path consists of crossing diagonal bars, with differences in the connections and thicknesses of individual bars. The three LFEM runs with $p=2,3,4$ reach the design-change tolerance after 230, 230 and 254 iterations, and the three HZMFEM runs with $k=2,3,4$ after 287, 301 and 342 iterations; the final volume fractions are all close to $0.4$ and satisfy the volume constraint (Figure~\ref{fig:clamped_beam_convergence}). The final full-beam compliance of each run evaluated with its own discretization (the optimized compliance) is listed in the third column of Table~\ref{tab:clamped_beam_reanalysis} (in $\mathrm{N\cdot mm}$, likewise below): 31.73, 31.83 and 31.85 for LFEM with $p=2,3,4$, and 32.76, 32.11 and 31.91 for HZMFEM with $k=2,3,4$.
+
+The differences among these optimized compliances cannot be read directly as differences among the final designs. The displacement method evaluates the compliance as the external work and the mixed method as the complementary energy~\eqref{eq:compliance_obj}, so the two give different discrete values even for the same design; moreover, each run solves its own optimization problem independently, and the final designs are not identical. To separate the two factors, the final physical densities of the six runs are frozen, the state equations are solved once with each of LFEM $p=3,4$ and HZMFEM $k=3,4$, and the compliance is evaluated with the corresponding functional; the results are listed in the last four columns of Table~\ref{tab:clamped_beam_reanalysis}.
+
+\begin{table}[htbp]
+\centering
+\caption{Optimized compliance and uniform reanalysis compliance of the six final designs of the clamped beam (full structure, in $\mathrm{N\cdot mm}$; $p$: displacement degree of LFEM, $k$: stress degree of HZMFEM).}
+\label{tab:clamped_beam_reanalysis}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+\multirow{2}{*}{Optimized design} & \multirow{2}{*}{Iterations} & Optimized & \multicolumn{4}{c}{Reanalysis compliance} \\
+\cmidrule(lr){4-7}
+ & & compliance & $p=3$ & $p=4$ & $k=3$ & $k=4$ \\
+\midrule
+LFEM $p=2$   & 230 & 31.73 & 31.83 & 31.85 & 32.38 & 32.13 \\
+LFEM $p=3$   & 230 & 31.83 & 31.83 & 31.85 & 32.38 & 32.13 \\
+LFEM $p=4$   & 254 & 31.85 & 31.83 & 31.85 & 32.38 & 32.13 \\
+HZMFEM $k=2$ & 287 & 32.76 & 31.60 & 31.63 & 32.13 & 31.88 \\
+HZMFEM $k=3$ & 301 & 32.11 & 31.57 & 31.59 & 32.11 & 31.86 \\
+HZMFEM $k=4$ & 342 & 31.91 & 31.61 & 31.64 & 32.17 & 31.91 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Within each reanalysis column, the compliances of the three LFEM designs differ by at most $0.01\%$ and those of the three HZMFEM designs by at most $0.20\%$, and the maximum relative difference among the six designs is about $0.82\%$ (LFEM columns) and $0.86\%$ (HZMFEM columns), far below the $3.26\%$ spread among the six optimized compliances. On the other hand, for each frozen design the LFEM compliance increases with $p$ while the HZMFEM compliance decreases with $k$, and the relative difference between the two functionals at the same order shrinks from $1.66\%$--$1.78\%$ at order 3 to $0.82\%$--$0.89\%$ at order 4, so the two discrete approximations approach each other from opposite sides. The differences among the optimized compliances therefore stem mainly from the objective functionals and the discretizations rather than from the final designs. This agrees with the observation of Bruggi~\cite{Bruggi2016} that truly mixed and displacement-based elements on regular grids yield almost identical optimal layouts for energy-type TO problems. This example shows that HZMFEM attains load-carrying layouts and final compliances close to those of LFEM in the classical compliance minimization problem, providing numerical support for the correctness of the proposed TO pipeline.
+
+\subsubsection{Nearly Incompressible Topology Optimization (2D Bearing)}
+\label{subsubsec:bearing}
+
+The 2D bearing benchmark ($120\,\mathrm{mm}\times40\,\mathrm{mm}$, plane strain, Figure~\ref{fig:bearing_schematic}) is used to examine the resistance to volumetric locking in the nearly incompressible limit. The bottom edge is fully clamped ($u_x=u_y=0$), a uniform downward traction of intensity $t_0=8\times10^{-2}\,\mathrm{N/mm}$ is applied on the top edge, and the left and right edges are traction-free. The material parameters are $E_0=1\,\mathrm{MPa}$, with $\nu_0=0.3$ for the compressible reference group and $\nu_0=0.4999$ for the nearly incompressible group; the void modulus is $E_{\min}=10^{-9}\,\mathrm{MPa}$ and $p_E=3$. The Poisson's ratio is kept fixed in the compressible group, whereas in the nearly incompressible group it is interpolated by~\eqref{eq:poisson_relaxation} with $\nu_{\mathrm{void}}=0.3$ and $p_\nu=1$.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/incompressible/fig5_4_bearing_schematic}
+\caption{Geometry and boundary conditions of the 2D bearing.}
+\label{fig:bearing_schematic}
+\end{figure}
+
+The design domain is discretized by a $120\times40$ structured triangular mesh ($9\,600$ elements) whose diagonals are mirrored between the left and right halves, consistent with the left--right symmetry of the problem. The volume fraction bound is $\bar{V}=0.35$, the density filter radius is $r_{\min}=2.0\,\mathrm{mm}$, and the initial density is uniform, $\rho_e^{(0)}=\bar{V}$. For each material group the problem is solved with LFEM $p=1,2$ and HZMFEM $k=2$ (the latter with the jump stabilization of Section~\ref{subsec:jump_stabilization}), giving six optimization runs in total. All runs use the OC update of Algorithm~\ref{alg:compliance_single_loop} with move limit $m=0.2$, damping exponent $\xi=0.5$ and design-change tolerance $\varepsilon_\rho=10^{-2}$, and all reach the stopping criterion.
+
+Before the optimization, volumetric locking is examined on the fully solid domain ($\rho_e\equiv1$). For $\nu_0=0.3$ and $0.4999$ the mesh is refined from $30\times10$ to $240\times80$; LFEM $p=1,2$ and HZMFEM $k=2$ are computed on four levels, and HZMFEM $k=4$, which needs no stabilization, on the first three. For each Poisson's ratio the reference value is the Richardson-extrapolated limit of the first three HZMFEM $k=4$ results~\cite{Roache1994} (Figure~\ref{fig:bearing_solid_h_convergence}). The limits extrapolated from the other sequences differ from this reference by no more than $0.06\%$, so deviations below this level (the two finest levels of LFEM $p=2$ in the compressible group) are not interpreted quantitatively. On the $120\times40$ mesh, the absolute compliance deviation of LFEM $p=1$ grows from about $0.04\%$ to $16.82\%$ as the Poisson's ratio is increased, a clear sign of locking; those of HZMFEM $k=2$ and $k=4$ grow only from $0.66\%$ and $0.30\%$ to $0.96\%$ and $0.42\%$, and for both Poisson's ratios they decrease monotonically under refinement with similar magnitudes, showing none of the accuracy degradation of the linear displacement element. The deviation of LFEM $p=2$ in the nearly incompressible group is about $0.13\%$, still below that of both mixed discretizations.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/incompressible/bearing_solid_h_convergence}
+\caption{Absolute compliance deviation from the extrapolated reference on the fully solid domain ($\rho_e\equiv1$): (a) $\nu_0=0.3$; (b) $\nu_0=0.4999$.}
+\label{fig:bearing_solid_h_convergence}
+\end{figure}
+
+Figure~\ref{fig:bearing_topologies} shows the final topologies of the six runs, all of which form a load path dominated by three arches. In the compressible group the three discretizations give similar layouts. In the nearly incompressible group, the arches of LFEM $p=1$ have more polygonal contours with sharper crowns and locally thicker members, whereas LFEM $p=2$ and HZMFEM $k=2$ retain smooth arch contours and give close layouts. Together with the marked accuracy degradation of the linear displacement element in Figure~\ref{fig:bearing_solid_h_convergence}, these differences indicate that volumetric locking has affected its optimization result. In the nearly incompressible group LFEM $p=1$ exhibits a spurious overstiffness due to locking, so its computed compliance is too low (optimized-compliance column of Table~\ref{tab:bearing_reanalysis}) and cannot be taken as evidence of a better design.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/incompressible/bearing_topologies}
+\caption{Final topologies of the 2D bearing (left column: $\nu_0=0.30$; right column: $\nu_0=0.4999$; from top to bottom: LFEM $p=1$, LFEM $p=2$, HZMFEM $k=2$).}
+\label{fig:bearing_topologies}
+\end{figure}
+
+To compare the six final designs, the physical densities of each run are frozen and reanalyzed on the $120\times40$ mesh with LFEM $p=1,2$ and HZMFEM $k=2,4$; Table~\ref{tab:bearing_reanalysis} lists the HZMFEM $k=4$ compliance together with the relative deviations of the other discretizations from it. Under the common HZMFEM $k=4$ reanalysis, the compliances of the three compressible designs differ by at most about $1.2\%$; in the nearly incompressible group, the design obtained with LFEM $p=1$ has a compliance about $24.0\%$ higher than that obtained with HZMFEM $k=2$, whereas LFEM $p=2$ and HZMFEM $k=2$ differ by only about $0.5\%$. For the same frozen design, the LFEM $p=1$ compliance in the nearly incompressible group is about $17\%$--$38\%$ below the reference value, which further shows that locking overestimates its stiffness. Combining Figures~\ref{fig:bearing_solid_h_convergence} and~\ref{fig:bearing_topologies}, the Hu--Zhang element effectively mitigates the influence of the locking of the linear displacement element on the optimization result, and its designs perform close to those of the quadratic displacement element.
+
+\begin{table}[htbp]
+\centering
+\caption{Iterations, optimized compliance and HZMFEM $k=4$ reanalysis compliance of the six final designs of the 2D bearing (in $\mathrm{N\cdot mm}$), and relative deviations of the other reanalysis discretizations from the HZMFEM $k=4$ value.}
+\label{tab:bearing_reanalysis}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{clcccccc}
+\toprule
+\multirow{2}{*}{$\nu_0$} & \multirow{2}{*}{Optimized design} & \multirow{2}{*}{Iterations} & Optimized & Reanalysis & \multicolumn{3}{c}{Deviation from $k=4$} \\
+\cmidrule(lr){6-8}
+ & & & compliance & $k=4$ & $p=1$ & $p=2$ & $k=2$ \\
+\midrule
+0.30   & LFEM $p=1$   & 281 & 119.33 & 125.83 & $-5.2\%$  & $-1.9\%$ & $+4.9\%$ \\
+0.30   & LFEM $p=2$   & 351 & 122.73 & 124.64 & $-4.0\%$  & $-1.5\%$ & $+4.0\%$ \\
+0.30   & HZMFEM $k=2$ & 464 & 127.68 & 124.30 & $-3.5\%$  & $-1.2\%$ & $+2.7\%$ \\
+\midrule
+0.4999 & LFEM $p=1$   & 372 & 76.43  & 123.49 & $-38.1\%$ & $-2.6\%$ & $+4.9\%$ \\
+0.4999 & LFEM $p=2$   & 245 & 98.06  & 100.01 & $-17.8\%$ & $-1.9\%$ & $+4.0\%$ \\
+0.4999 & HZMFEM $k=2$ & 343 & 102.37 & 99.56  & $-16.8\%$ & $-1.6\%$ & $+2.8\%$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsubsection{Local Stress-Constrained Cantilever Beam}
-We examine a 2D cantilever beam subjected to local von Mises stress constraints. Employing the denominator-free relaxed constraint formulation~\eqref{eq:relaxed_stress_constraint} and the augmented Lagrangian solver, the optimization converges smoothly without stress singularities. Compared with post-processed stresses in displacement models, the conforming normal traction of the Hu--Zhang elements yields strictly continuous boundary tractions and accurate stress evaluations, effectively eliminating stress concentration artifacts near re-entrant corners.
+\label{subsubsec:stress_cantilever}
+
+The local stress-constrained cantilever beam (Figure~\ref{fig:cantilever_schematic}) has a design domain of $80\,\mathrm{mm}\times40\,\mathrm{mm}$ in plane stress, clamped along the left edge. A vertical resultant $P=400\,\mathrm{N}$ at the midpoint of the right edge is applied as a uniform traction $\bar t=P/l$ over a contact width $l=6\,\mathrm{mm}$ whose end points coincide with mesh nodes. The displacement method imposes this load through the boundary integral and the mixed method through the normal trace of the stress; the neighborhoods of the contact end points are treated as passive solid regions as described below. The solid material is an aluminum alloy with $E_0=70\,000\,\mathrm{MPa}$, $\nu_0=0.25$ and allowable stress $\bar\sigma=180\,\mathrm{MPa}$, and the void modulus is $E_{\min}=10^{-9}E_0$. Since the load is design-independent and the displacement boundary conditions are homogeneous, the stresses do not depend on the scale of the elastic moduli; the computations therefore use $E_0^{\mathrm{calc}}=1\,\mathrm{MPa}$, with $E_{\min}$ and the stabilization coefficient of the stabilized $k=2$ scheme used later in this section scaled proportionally, while the load and $\bar\sigma$ keep their physical values. The penalization exponent is $p_E=3.5$, the domain is discretized by an $80\times40$ checkerboard triangular mesh with alternating diagonals ($6\,400$ elements), the density filter radius is $r_{\min}=6.0\,\mathrm{mm}$, and the initial density is $\rho_e^{(0)}=0.5$.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/stress_constrained/fig5_6_cantilever_schematic}
+\caption{Design domain, local load and boundary conditions of the 2D cantilever beam.}
+\label{fig:cantilever_schematic}
+\end{figure}
+
+Both methods use the same mesh, load and optimization parameters. LFEM uses $p=3$ and HZMFEM uses $k=3$, the latter being a native high-order scheme that needs no jump stabilization. The filtered density is passed through the tanh projection~\eqref{eq:heaviside_projection} with $\eta_{\mathrm p}=0.5$, and $\beta$ is increased from $1$ by $1$ every 5 outer iterations up to $10$. The local stress constraints follow the model of Section~\ref{subsec:stress_constraints} with $\epsilon=10^{-3}$ held fixed throughout. A passive solid region $\Omega_{\mathrm{pad}}$ is defined as the neighborhoods of radius $r_{\mathrm{pad}}=1.5\,\mathrm{mm}$ around the two end points of the contact width (16 elements for both discretizations, $0.25\%$ of the design domain area). No local stress constraint is imposed there, i.e. the region is left out of the stress-constraint term of the augmented Lagrangian, as for the elements around concentrated loads in Bruggi and Venini~\cite{BruggiVenini2008}. Its physical density is set to $1$ after filtering and projection and the corresponding derivative of the density mapping is set to zero, so that the region is excluded from the optimization as in Holmberg et al.~\cite{Holmberg2013}. Its volume is counted in the total volume fraction. The criterion set is $\mathcal E_{\mathrm{acc}}=\{e\notin\Omega_{\mathrm{pad}}:\bar\rho_e\geq0.5\}$; the elements with $\bar\rho_e<0.5$ still carry the relaxed stress constraint but do not enter the stopping test. The ALM--MMA procedure of Algorithm~\ref{alg:stress_alm_mma} is used with $\mu_0=50$, $\gamma_\mu=1.1$, $\mu_{\max}=10^4$, $\lambda_{\max}=3000$, move limit $m=0.15$, a minimum asymptote gap of $10^{-4}$, $N_{\mathrm{out}}^{\max}=200$ and $N_{\mathrm{in}}^{\max}=5$. The stopping parameters are $\delta_\rho=0.002$, $\delta_g=0.005$ and $N_{\mathrm{hold}}=3$.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/stress_constrained/stress_cubic_topologies}
+\caption{Final topologies and apparent von Mises stress ratio of the cantilever beam with cubic discretizations (LFEM: $p=3$; HZMFEM: $k=3$).}
+\label{fig:stress_cubic_topologies}
+\end{figure}
+
+Figure~\ref{fig:stress_cubic_topologies} shows that the two discretizations give similar truss-like topologies: the main load path consists of the upper and lower chords and the internal crossing diagonals, the high-stress regions are distributed along this path, and both the layout and the stress distribution are close between the two discretizations.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/stress_constrained/stress_cubic_convergence}
+\caption{Convergence histories and element stress distributions in the principal stress plane for the cantilever beam with cubic discretizations ((a,b) LFEM $p=3$; (c,d) HZMFEM $k=3$); $g_{\max}$ and the stress points are evaluated on the criterion set $\mathcal E_{\mathrm{acc}}$.}
+\label{fig:stress_cubic_convergence}
+\end{figure}
+
+Figure~\ref{fig:stress_cubic_convergence}(a,c) shows the histories of the volume fraction and of the maximum local constraint value on the criterion set $\mathcal E_{\mathrm{acc}}$, each constraint being evaluated with its own discretization. LFEM and HZMFEM reach the stopping criterion of Algorithm~\ref{alg:stress_alm_mma} after 248 and 256 MMA updates, respectively; the final $f_V$ are $34.39\%$ and $35.01\%$, and the final $g_{\max}$ are $3.92\times10^{-3}$ and $2.82\times10^{-3}$, both below $\delta_g=0.005$. Figure~\ref{fig:stress_cubic_convergence}(b,d) shows the ratios $\sigma_i/\bar\sigma$ ($\sigma_1\geq\sigma_2$) of the apparent principal stresses at the element centroids to the allowable stress for the elements in $\mathcal E_{\mathrm{acc}}$, colored by the apparent von Mises stress ratio. The stress points lie almost entirely in the quadrant $\sigma_1\geq0\geq\sigma_2$: part of them cluster along the two axes, i.e. in uniaxial tension or compression, in line with the axial load-carrying of the members of the truss-like layout, while the rest spread between the axes up to the yield ellipse, i.e. in biaxial tension--compression states dominated by shear.
+
+With the same settings as in Figure~\ref{fig:stress_cubic_topologies}, the problem is also solved with the stabilized scheme $k=2$ and the native scheme $k=4$; the results are shown in Figure~\ref{fig:stress_hz_orders_topologies}. Together with $k=3$, the three orders take 250, 256 and 258 MMA updates, the final $f_V$ are $34.70\%$, $35.01\%$ and $35.30\%$, and the final $g_{\max}$ on the criterion set $\mathcal E_{\mathrm{acc}}$ are $1.96\times10^{-3}$, $2.82\times10^{-3}$ and $4.92\times10^{-3}$, all below $\delta_g$ and all satisfying the same design-change criterion. The three orders give similar main load-carrying layouts, showing that the optimization procedure applies to both the low-order stabilized and the high-order native discretizations considered.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/stress_constrained/stress_hz_orders_topologies}
+\caption{Final topologies and apparent von Mises stress ratio of the cantilever beam with Hu--Zhang mixed discretizations ((a,b) $k=2$; (c,d) $k=4$).}
+\label{fig:stress_hz_orders_topologies}
+\end{figure}
+
+To examine the stress fields of the two discretizations further, we compare their inter-element normal traction continuity. For HZMFEM, $g_e$ is taken directly from the primary unknown $\boldsymbol{\sigma}_h\in H(\operatorname{div},\Omega;\mathbb S)$, whose normal traction is single-valued across elements; for LFEM, the stress is recovered element by element from the displacement gradient, and the traction is discontinuous on interior faces. To quantify this difference, the six final designs of LFEM $p=2,3,4$ and HZMFEM $k=2,3,4$ (those for $p=2,4$ are obtained separately with the settings and stopping criterion of Figure~\ref{fig:stress_cubic_topologies}) are re-solved for the state equations with the discretization used in their optimization. On an interior face $F$ we define the normalized root-mean-square traction jump $A_F$, and take the maximum over the interior faces of an element as the element indicator $A_e$:
+\begin{equation}
+\label{eq:traction_jump_indicator}
+A_F=\frac{1}{\bar\sigma}\Big(\frac{1}{|F|}\int_F\big\|\llbracket\boldsymbol{\sigma}^{\mathrm{app}}_h\boldsymbol{n}\rrbracket\big\|^2\,\mathrm{d}s\Big)^{1/2},\qquad A_e=\max_{F\subset\partial T_e\cap\Omega}A_F.
+\end{equation}
+The statistics are restricted to the solid band ($\bar\rho_e>0.9$ and $e\notin\Omega_{\mathrm{pad}}$). In Figure~\ref{fig:stress_traction_jump}, $A_e$ of the three HZMFEM orders is at round-off level (at most $2.2\times10^{-16}$); for LFEM $p=2,3,4$ the medians of $A_e$ are $2.4\times10^{-2}$, $1.6\times10^{-2}$ and $1.1\times10^{-2}$ and the 95th percentiles are $0.13$, $0.086$ and $0.072$, decreasing with the order but remaining clearly non-zero, with the larger jumps concentrated at the member edges. This reflects the difference between the two discretizations in inter-element equilibrium: the Hu--Zhang stress field preserves normal traction continuity, whereas a stress recovered element by element from the displacement gradient does not satisfy this continuity in general. The lines $\delta_g$ and $4\delta_g$ in the figure serve only as numerical scale references and are not acceptance thresholds for the traction jump.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/stress_constrained/stress_traction_jump}
+\caption{Element-wise traction jump $A_e$ on the solid band of the final designs: spatial distribution for (a) LFEM $p=2$ and (b) HZMFEM $k=2$ (shared color scale, values above the upper bound are clipped); (c) empirical cumulative distributions of the six designs on a broken horizontal axis, the left part for HZMFEM $k=2$--$4$ (dashed) and the right part for LFEM $p=2$--$4$ (solid), with vertical lines at $\delta_g$ and $4\delta_g$.}
+\label{fig:stress_traction_jump}
+\end{figure}

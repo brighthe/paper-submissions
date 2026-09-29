@@ -4,21 +4,21 @@
 \subsection{Notation and Simplicial Mesh}
 \label{subsec:notation}
 
-Let $\Omega \subset \mathbb{R}^d$ ($d=2,3$) be a bounded Lipschitz polyhedral domain with boundary $\partial\Omega = \overline{\Gamma_D} \cup \overline{\Gamma_N}$, where $\Gamma_D \cap \Gamma_N = \emptyset$ and $|\Gamma_D| > 0$. Here $\Gamma_D$ denotes the Dirichlet boundary where displacements are prescribed, and $\Gamma_N$ represents the Neumann boundary subjected to surface tractions. Let $\mathbb{S}$ denote the space of real symmetric second-order tensors of order $d \times d$, and $\mathbb{I}$ be the second-order identity tensor.
+Let $\Omega \subset \mathbb{R}^d$ ($d=2,3$) be a bounded polygonal or polyhedral domain with boundary $\partial\Omega$. The Dirichlet displacement boundary $\Gamma_D$ and Neumann traction boundary $\Gamma_N$ are disjoint, relatively open subsets of $\partial\Omega$ such that $\partial\Omega = \overline{\Gamma_D} \cup \overline{\Gamma_N}$. Let $\mathbb{S}$ denote the space of real symmetric second-order tensors of order $d \times d$, and $\boldsymbol{I}$ be the second-order identity tensor.
 
-For symmetric tensors $\boldsymbol{\sigma}, \boldsymbol{\tau} \in \mathbb{S}$, the Frobenius inner product and trace are denoted by $\boldsymbol{\sigma} : \boldsymbol{\tau} = \sum_{i,j=1}^d \sigma_{ij}\tau_{ij} = \operatorname{tr}(\boldsymbol{\sigma}\boldsymbol{\tau})$. For tensor field $\boldsymbol{\tau}$ and vector field $\boldsymbol{u}$, the divergence and symmetric gradient operators are defined by
-\begin{equation}
+For any second-order symmetric tensors $\boldsymbol{\sigma}, \boldsymbol{\tau} \in \mathbb{S}$, the tensor double contraction is defined by $\boldsymbol{\sigma} : \boldsymbol{\tau} = \sum_{i,j=1}^d \sigma_{ij}\tau_{ij} = \operatorname{tr}(\boldsymbol{\sigma}\boldsymbol{\tau})$, and the trace is defined by $\operatorname{tr}(\boldsymbol{\tau}) = \sum_{i=1}^d \tau_{ii}$. The gradient components of a vector field $\boldsymbol{u}$ are defined by $(\nabla\boldsymbol{u})_{ij} = \partial u_i / \partial x_j$. For a tensor field $\boldsymbol{\tau}$ and a vector field $\boldsymbol{u}$, the divergence and symmetric gradient operators are defined by
+\begin{equation*}
 (\operatorname{div}\boldsymbol{\tau})_i = \sum_{j=1}^d \frac{\partial \tau_{ij}}{\partial x_j}, \qquad 
-\boldsymbol{\varepsilon}(\boldsymbol{u}) = \frac{1}{2}\left(\nabla\boldsymbol{u} + \nabla\boldsymbol{u}^{\mathsf T}\right).
-\end{equation}
+\boldsymbol{\varepsilon}(\boldsymbol{u}) = \frac{1}{2}\left(\nabla\boldsymbol{u} + (\nabla\boldsymbol{u})^{\mathsf T}\right).
+\end{equation*}
 
-Let $\mathcal{T}_h$ be a shape-regular conforming simplicial mesh of $\Omega$ (triangles for $d=2$ and tetrahedra for $d=3$), characterized by mesh size $h = \max_{T\in\mathcal{T}_h} h_T$. We denote the set of vertices by $\mathcal{V}_h$, edges by $\mathcal{E}_h$, and $(d-1)$-dimensional faces by $\mathcal{F}_h$ (with $\mathcal{F}_h = \mathcal{E}_h$ in two dimensions). The face set is partitioned into internal faces $\mathcal{F}_h^i$, Dirichlet boundary faces $\mathcal{F}_h^D$, and Neumann boundary faces $\mathcal{F}_h^N$, such that $\mathcal{F}_h = \mathcal{F}_h^i \cup \mathcal{F}_h^D \cup \mathcal{F}_h^N$.
+Let $\mathcal{T}_h$ be a shape-regular conforming simplicial mesh of $\Omega$ compatible with the boundary partition, and let $h_T = \operatorname{diam}(T)$, $h = \max_{T\in\mathcal{T}_h} h_T$. Let $\mathcal{V}_h$, $\mathcal{E}_h$, and $\mathcal{F}_h$ denote the sets of vertices, edges, and faces, respectively, where $\mathcal{F}_h = \mathcal{E}_h$ in two dimensions. The face set consists of internal faces $\mathcal{F}_h^i$, Dirichlet boundary faces $\mathcal{F}_h^D$, and Neumann boundary faces $\mathcal{F}_h^N$. For each face $F \in \mathcal{F}_h$, let $h_F = \operatorname{diam}(F)$, and let $|F|$ denote its $(d-1)$-dimensional measure.
 
-We adopt standard $L^2$ inner products and norms on $\Omega$, denoted by $(\cdot,\cdot)_\Omega$ and $\|\cdot\|_{0,\Omega}$. The symmetric tensor $H(\operatorname{div})$ space is defined as
-\begin{equation}
+Let $L^2(\Omega;\mathbb{R}^d)$ and $L^2(\Omega;\mathbb{S})$ denote the vector- and symmetric-tensor-valued $L^2$ spaces, respectively, with their inner products uniformly denoted by $(\cdot,\cdot)_\Omega$. The symmetric tensor $H(\operatorname{div})$ space is defined as
+\begin{equation*}
 H(\operatorname{div},\Omega;\mathbb{S}) = \left\{ \boldsymbol{\tau} \in L^2(\Omega;\mathbb{S}) : \operatorname{div}\boldsymbol{\tau} \in L^2(\Omega;\mathbb{R}^d) \right\},
-\end{equation}
-equipped with the graph norm $\|\boldsymbol{\tau}\|_{H(\operatorname{div})}^2 = \|\boldsymbol{\tau}\|_{0,\Omega}^2 + \|\operatorname{div}\boldsymbol{\tau}\|_{0,\Omega}^2$.
+\end{equation*}
+equipped with the norm $\|\boldsymbol{\tau}\|_{H(\operatorname{div})}^2 = \|\boldsymbol{\tau}\|_{0,\Omega}^2 + \|\operatorname{div}\boldsymbol{\tau}\|_{0,\Omega}^2$.
 
 \subsection{Linear Elasticity and Hellinger--Reissner Variational Formulation}
 \label{subsec:hellinger_reissner}
@@ -33,19 +33,21 @@ Consider the small-strain isotropic linear elasticity boundary value problem:
 \boldsymbol{\sigma}\boldsymbol{n} &= \boldsymbol{g} && \text{on } \Gamma_N,
 \end{aligned}
 \end{equation}
-where $\boldsymbol{\sigma} \in \mathbb{S}$ is the symmetric Cauchy stress tensor, $\boldsymbol{u}$ is the displacement vector, $\boldsymbol{b}$ is the body force, $\boldsymbol{g}$ is the prescribed surface traction, and $\boldsymbol{n}$ is the unit outward normal vector on $\partial\Omega$. The fourth-order compliance tensor $\mathcal{A}$ acts on any symmetric tensor $\boldsymbol{\tau} \in \mathbb{S}$ as
+where $\boldsymbol{\sigma} \in \mathbb{S}$ is the symmetric Cauchy stress tensor, $\boldsymbol{u}$ is the displacement vector, $\boldsymbol{b}$ is the body force, $\boldsymbol{g}$ is the prescribed boundary surface traction, and $\boldsymbol{\varepsilon}(\boldsymbol{u})$ is the small-strain tensor. The fourth-order isotropic linear elastic compliance tensor $\mathcal{A}$ acts on any symmetric second-order tensor $\boldsymbol{\tau}$ as
 \begin{equation}
 \label{eq:compliance_tensor}
-\mathcal{A}\boldsymbol{\tau} = \frac{1}{2\mu}\left( \boldsymbol{\tau} - \frac{\lambda}{2\mu + d\lambda} \operatorname{tr}(\boldsymbol{\tau})\mathbb{I} \right),
+\mathcal{A}\boldsymbol{\tau} = \frac{1}{2\mu}\left( \boldsymbol{\tau} - \frac{\lambda}{2\mu + d\lambda} \operatorname{tr}(\boldsymbol{\tau})\boldsymbol{I} \right),
 \end{equation}
-with Lam{\'e} parameters $\lambda = \frac{E\nu}{(1+\nu)(1-2\nu)}$ and $\mu = \frac{E}{2(1+\nu)}$ for plane strain/3D, where $E$ is Young's modulus and $\nu$ is Poisson's ratio.
+where $\lambda$ and $\mu$ are the Lam{\'e} parameters. Let $E$ and $\nu$ denote Young's modulus and Poisson's ratio of the material, respectively. In two dimensions, $\mu=E/[2(1+\nu)]$; $\lambda=E\nu/[(1+\nu)(1-2\nu)]$ for plane strain, and the two-dimensional effective parameter is $\lambda=E\nu/(1-\nu^2)$ for plane stress.
 
-To handle the traction boundary condition $\boldsymbol{\sigma}\boldsymbol{n} = \boldsymbol{g}$ on $\Gamma_N$, we define the affine trial space and the homogeneous test space:
-\begin{equation}
+To handle the non-homogeneous Neumann traction boundary condition $\boldsymbol{\sigma}\boldsymbol{n} = \boldsymbol{g}$, we introduce the non-homogeneous stress trial set and the homogeneous stress test space:
+\begin{equation*}
 \boldsymbol{\Sigma}_g = \left\{ \boldsymbol{\tau} \in H(\operatorname{div},\Omega;\mathbb{S}) : \boldsymbol{\tau}\boldsymbol{n} = \boldsymbol{g} \text{ on } \Gamma_N \right\}, \qquad
-\boldsymbol{\Sigma}_0 = \left\{ \boldsymbol{\tau} \in H(\operatorname{div},\Omega;\mathbb{S}) : \boldsymbol{\tau}\boldsymbol{n} = \boldsymbol{0} \text{ on } \Gamma_N \right\}.
-\end{equation}
-The displacement space is chosen as $\boldsymbol{V} = L^2(\Omega;\mathbb{R}^d)$. The two-field Hellinger--Reissner variational problem seeks $(\boldsymbol{\sigma},\boldsymbol{u}) \in \boldsymbol{\Sigma}_g \times \boldsymbol{V}$ such that
+\boldsymbol{\Sigma}_0 = \left\{ \boldsymbol{\tau} \in H(\operatorname{div},\Omega;\mathbb{S}) : \boldsymbol{\tau}\boldsymbol{n} = \boldsymbol{0} \text{ on } \Gamma_N \right\},
+\end{equation*}
+where $\boldsymbol{\Sigma}_0$ is a closed subspace of $H(\operatorname{div},\Omega;\mathbb{S})$. Assuming $\boldsymbol{\Sigma}_g\ne\varnothing$, it is an affine translation of $\boldsymbol{\Sigma}_0$; when the traction data is non-zero, it does not constitute a linear space. The displacement trial and test spaces are uniformly denoted by $\boldsymbol{V} = L^2(\Omega;\mathbb{R}^d)$.
+
+The Hellinger--Reissner two-field mixed variational problem for linear elasticity is formulated as: find $(\boldsymbol{\sigma},\boldsymbol{u}) \in \boldsymbol{\Sigma}_g \times \boldsymbol{V}$ such that for all test functions $(\boldsymbol{\tau},\boldsymbol{v}) \in \boldsymbol{\Sigma}_0 \times \boldsymbol{V}$,
 \begin{equation}
 \label{eq:hr_variational}
 \begin{aligned}
@@ -53,23 +55,29 @@ a(\boldsymbol{\sigma},\boldsymbol{\tau}) + b(\boldsymbol{\tau},\boldsymbol{u}) &
 b(\boldsymbol{\sigma},\boldsymbol{v}) &= -(\boldsymbol{b},\boldsymbol{v})_\Omega, && \forall\,\boldsymbol{v}\in\boldsymbol{V},
 \end{aligned}
 \end{equation}
-where the bilinear forms and boundary duality pairing are given by
-\begin{equation}
-a(\boldsymbol{\sigma},\boldsymbol{\tau}) = \int_\Omega \mathcal{A}\boldsymbol{\sigma} : \boldsymbol{\tau} \,\mathrm{d}x, \qquad
-b(\boldsymbol{\tau},\boldsymbol{v}) = \int_\Omega (\operatorname{div}\boldsymbol{\tau})\cdot\boldsymbol{v}\,\mathrm{d}x, \qquad
+where the bilinear forms are defined by
+\begin{equation*}
+a(\boldsymbol{\sigma},\boldsymbol{\tau}) = (\mathcal{A}\boldsymbol{\sigma},\boldsymbol{\tau})_\Omega = \int_\Omega \mathcal{A}\boldsymbol{\sigma} : \boldsymbol{\tau} \,\mathrm{d}x, \qquad
+b(\boldsymbol{\tau},\boldsymbol{v}) = (\operatorname{div}\boldsymbol{\tau},\boldsymbol{v})_\Omega = \int_\Omega (\operatorname{div}\boldsymbol{\tau})\cdot\boldsymbol{v}\,\mathrm{d}x,
+\end{equation*}
+and the boundary term $\langle\boldsymbol{u}_D,\boldsymbol{\tau}\boldsymbol{n}\rangle_{\Gamma_D}$ denotes the duality pairing between the corresponding trace spaces; when the functions possess sufficient regularity, it can be written as the boundary integral:
+\begin{equation*}
 \langle \boldsymbol{u}_D, \boldsymbol{\tau}\boldsymbol{n} \rangle_{\Gamma_D} = \int_{\Gamma_D} \boldsymbol{u}_D \cdot (\boldsymbol{\tau}\boldsymbol{n})\,\mathrm{d}s.
-\end{equation}
-Because $\boldsymbol{u} \in L^2(\Omega;\mathbb{R}^d)$, no inter-element continuity is imposed on displacements. Meanwhile, as Poisson's ratio $\nu \to 0.5$, the compliance bilinear form $a(\cdot,\cdot)$ remains uniformly bounded, ensuring locking-free behavior in the continuous formulation~\cite{BoffiBrezziFortin2013}.
+\end{equation*}
+
+Since the displacement $\boldsymbol{u} \in \boldsymbol{V} = L^2(\Omega;\mathbb{R}^d)$, no inter-element continuity is imposed on the displacement field in the variational formulation; the stress belongs to $H(\operatorname{div},\Omega;\mathbb{S})$ and satisfies inter-element normal traction continuity in the sense of traces. When boundary constraints preclude rigid body motions, the boundary data satisfy compatibility and regularity requirements, and the bilinear forms satisfy continuity, kernel coercivity, and the continuous inf-sup condition, the variational problem~\eqref{eq:hr_variational} admits a unique weak solution~\cite{BoffiBrezziFortin2013}. For three-dimensional or plane strain problems, in the nearly incompressible limit ($\lambda \to \infty$ with $\mu$ fixed), the compliance bilinear form $a(\cdot,\cdot)$ remains bounded, but along the hydrostatic stress direction, its coercivity constant relative to the $L^2$ norm tends to zero as $\lambda \to \infty$. The locking-free property of mixed discretizations must be established under appropriate boundary or mean trace constraints through $\lambda$-uniform kernel estimates and discrete inf-sup conditions.
 
 \subsection{Non-homogeneous Traction Lifting and Total Stress Formulation}
 \label{subsec:traction_lifting}
 
-In the mixed variational formulation~\eqref{eq:hr_variational}, the traction condition $\boldsymbol{\sigma}\boldsymbol{n} = \boldsymbol{g}$ acts as an essential boundary condition on the stress field. To enable discretization within a standard linear subspace, we introduce a design-independent traction lifting field $\boldsymbol{\sigma}_g \in \boldsymbol{\Sigma}_g$ satisfying $\boldsymbol{\sigma}_g\boldsymbol{n} = \boldsymbol{g}$ on $\Gamma_N$. The total stress is then decomposed into
-\begin{equation}
-\label{eq:stress_decomposition}
-\boldsymbol{\sigma} = \boldsymbol{\sigma}_0 + \boldsymbol{\sigma}_g, \qquad \boldsymbol{\sigma}_0 \in \boldsymbol{\Sigma}_0.
-\end{equation}
-Substituting~\eqref{eq:stress_decomposition} into~\eqref{eq:hr_variational}, the problem is recast as: find $(\boldsymbol{\sigma}_0,\boldsymbol{u}) \in \boldsymbol{\Sigma}_0 \times \boldsymbol{V}$ such that
+In the Hellinger--Reissner mixed variational formulation, the traction condition $\boldsymbol{\sigma}\boldsymbol{n} = \boldsymbol{g}$ is an essential boundary condition constraining the normal trace of stress, whereas the displacement condition is naturally imposed through the boundary functional $\langle\boldsymbol{u}_D,\boldsymbol{\tau}\boldsymbol{n}\rangle_{\Gamma_D}$. To handle the non-homogeneous traction condition, we employ the standard lifting argument~\cite{Codina2024}. Assuming $\boldsymbol{\Sigma}_g \ne \emptyset$, we choose a stress field $\boldsymbol{\sigma}_g \in \boldsymbol{\Sigma}_g$ satisfying the prescribed traction boundary condition as a lifting of the boundary data $\boldsymbol{g}$. This field does not need to satisfy internal equilibrium equations or constitutive relations. Consequently,
+\begin{equation*}
+\boldsymbol{\Sigma}_g = \boldsymbol{\sigma}_g + \boldsymbol{\Sigma}_0, \qquad 
+\boldsymbol{\sigma} = \boldsymbol{\sigma}_0 + \boldsymbol{\sigma}_g, \qquad 
+\boldsymbol{\sigma}_0 \in \boldsymbol{\Sigma}_0.
+\end{equation*}
+
+Substituting this decomposition into~\eqref{eq:hr_variational}, we obtain the equivalent mixed variational problem: find $(\boldsymbol{\sigma}_0,\boldsymbol{u}) \in \boldsymbol{\Sigma}_0 \times \boldsymbol{V}$ such that
 \begin{equation}
 \label{eq:lifted_variational}
 \begin{aligned}
@@ -77,4 +85,8 @@ a(\boldsymbol{\sigma}_0,\boldsymbol{\tau}) + b(\boldsymbol{\tau},\boldsymbol{u})
 b(\boldsymbol{\sigma}_0,\boldsymbol{v}) &= -(\boldsymbol{b},\boldsymbol{v})_\Omega - b(\boldsymbol{\sigma}_g,\boldsymbol{v}), && \forall\,\boldsymbol{v}\in\boldsymbol{V}.
 \end{aligned}
 \end{equation}
-Once $\boldsymbol{\sigma}_0$ is obtained, the total stress field $\boldsymbol{\sigma} = \boldsymbol{\sigma}_0 + \boldsymbol{\sigma}_g$ is reconstructed and subsequently utilized for objective evaluation and stress constraint enforcement throughout the topology optimization procedure.
+Once solved, the total stress is reconstructed by $\boldsymbol{\sigma} = \boldsymbol{\sigma}_0 + \boldsymbol{\sigma}_g$. The choice of lifting is not unique: replacing $\boldsymbol{\sigma}_g$ with $\boldsymbol{\sigma}_g + \boldsymbol{\tau}_0$, where $\boldsymbol{\tau}_0 \in \boldsymbol{\Sigma}_0$, alters the homogeneous correction to $\boldsymbol{\sigma}_0 - \boldsymbol{\tau}_0$, while the reconstructed total stress remains invariant.
+
+At the discrete level, we select traction data $\boldsymbol{g}_h$ belonging to the discrete normal trace space and construct a discrete lifting $\boldsymbol{\sigma}_{g,h}$ in the discrete stress space $\boldsymbol{\Sigma}_{k,h}$ (used in Section~\ref{sec:huzhang_elements}) satisfying $\boldsymbol{\sigma}_{g,h}\boldsymbol{n} = \boldsymbol{g}_h$. The reconstructed discrete total stress exactly satisfies this discrete traction condition, whereas $\boldsymbol{g} - \boldsymbol{g}_h$ constitutes the boundary data approximation error. The discrete lifting construction adopted in this work is presented in Section~\ref{subsec:saddle_point_system}.
+
+Let $\rho$ denote the material density design variable. In this work, we consider a fixed design domain, a fixed mesh, and design-independent external loads and prescribed displacements, and we fix a choice of lifting $\boldsymbol{\sigma}_g$ independent of $\rho$, so that $\partial\boldsymbol{\sigma}_g/\partial\rho = 0$. When the compliance operator varies with the design variables, we denote the corresponding bilinear form by $a_\rho(\cdot,\cdot)$. The right-hand side of~\eqref{eq:lifted_variational} still depends on the design variables through $-a_\rho(\boldsymbol{\sigma}_g,\boldsymbol{\tau})$, whereas the load functional in the total stress formulation~\eqref{eq:hr_variational} is design-independent. Although the two formulations are equivalent, the total stress formulation must retain the affine constraint $\boldsymbol{\sigma} \in \boldsymbol{\Sigma}_g$. In what follows, objective functions and stress constraints are evaluated based on the total stress, and the design dependence of the right-hand side in the lifted formulation is systematically incorporated into the sensitivity derivations.
