@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$Fast,
     [switch]$Clean
 )
@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 $texDir = $PSScriptRoot
 
 # 优先探测系统 PATH 中的可执行程序，若未刷新则使用 MiKTeX 绝对路径
-$miktexBin = "C:\Users\Administrator\AppData\Local\Programs\MiKTeX\miktex\bin\x64"
+$miktexBin = "$env:LOCALAPPDATA\Programs\MiKTeX\miktex\bin\x64"
 if (Get-Command pdflatex -ErrorAction SilentlyContinue) {
     $pdflatexCmd = "pdflatex"
     $bibtexCmd = "bibtex"

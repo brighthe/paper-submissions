@@ -19,6 +19,9 @@
 ## LaTeX 编译环境
 
 - 在 Windows 原生环境下编译，需要 MiKTeX 或 TeX Live，并确保 `pdflatex`、`bibtex` 在 `PATH` 中。
+- 安装：`winget install MiKTeX.MiKTeX --scope user`，并运行 `initexmf --set-config-value="[MPM]AutoInstall=1"` 开启缺失宏包自动安装。
+- 首次运行 `build.ps1` 前执行一次 `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`，否则 Windows 默认禁止运行脚本。
+- `.ps1` 脚本须保存为 UTF-8 with BOM；无 BOM 时 Windows PowerShell 5.1 按 GBK 读取中文，导致脚本解析失败。
 - 引擎为 `pdflatex`，参考文献为 BibTeX（`abbrv`）；在稿件包目录内按 `pdflatex` → `bibtex` → `pdflatex` ×2 编译。
 - 带 `build.ps1` 的稿件包直接运行该脚本；各稿件包的入口文件和特殊要求见对应论文的 README。
 - 编译中间产物和 `.vscode/` 等编辑器配置不入库，换电脑后以上述流程为准。

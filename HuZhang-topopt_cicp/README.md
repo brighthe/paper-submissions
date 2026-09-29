@@ -13,6 +13,6 @@
 
 ## 编译
 
-在 `01-submission/` 目录下运行 `.\build.ps1` 完整编译生成 `main.pdf`；加 `-Fast` 只跑一次 `pdflatex` 快速预览，加 `-Clean` 清理中间文件。若执行策略禁止运行脚本，改用 `powershell -ExecutionPolicy Bypass -File .\build.ps1`。
+在 `01-submission/` 目录下运行 `.\build.ps1` 完整编译生成 `main.pdf`；加 `-Fast` 只跑一次 `pdflatex` 快速预览，加 `-Clean` 清理中间文件。若执行策略禁止运行脚本，按 [根目录 README](../README.md#latex-编译环境) 设置一次执行策略，或临时改用 `powershell -ExecutionPolicy Bypass -File .\build.ps1`。
 
 `figures/fig3_*.tex` 是 TikZ 示意图源文件，正文直接引用已提交的同名 PDF，只有修改示意图时才需单独编译。
