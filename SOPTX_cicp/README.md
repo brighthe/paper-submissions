@@ -50,6 +50,16 @@
 - [`04-records/reports/`](04-records/reports/) — 辅助报告。
 - [`04-records/submission-log.md`](04-records/submission-log.md) — 录用函、最终提交说明、上传记录和编译注意事项。
 
+## 编译
+
+按 [根目录 README](../README.md#latex-编译环境) 的标准流程在各稿件包目录内编译，入口文件分别为：
+
+- `01-preprint/arxiv/`：`main.tex`
+- `02-peer-review/`：`Clean Manuscript.tex`、`Marked-up Manuscript.tex`；`Title Page.tex` 和 `Point-by-Point Response to Reviewers.tex` 无参考文献，只需 `pdflatex`
+- `03-production/final-files/`：`SOPTX_Final_Files.tex`；图件为 EPS，需要 Ghostscript，且须在 Windows 原生环境编译
+
+各稿件包中的 `Makefile` 是随稿件提交的历史原件，其入口文件名与实际不符，保留原样但不要使用。
+
 ## 归档原则
 
 每个稿件阶段均作为可独立使用的历史稿件包保存。不同阶段共享的文件会在各自稿件包中有意保留，以确保每个版本都能独立追溯和构建。归档清理时仅删除了经确认未被相应稿件引用的图件。
